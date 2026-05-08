@@ -1,0 +1,2 @@
+# Main project dependencies (points to backend)
+-r backend/requirements.txt
