@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Block Robot IDE</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://unpkg.com/blockly/blockly.min.js"></script>
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="ide-header">
+            <div class="header-left">
+                <h1>🤖 Block Robot IDE</h1>
+                <span class="version">v1.0</span>
+            </div>
+
+            <div class="header-center">
+                <div class="workspace-tabs">
+                    <button class="tab active" data-workspace="setup">
+                        <span class="tab-icon">⚙️</span>
+                        Setup
+                    </button>
+                    <button class="tab" data-workspace="program">
+                        <span class="tab-icon">📦</span>
+                        Program
+                    </button>
+                    <button class="tab" data-workspace="poses">
+                        <span class="tab-icon">🎯</span>
+                        Teach Poses
+                    </button>
+                </div>
+            </div>
+
+            <div class="header-right">
+                <button id="build-btn" class="btn-primary">
+                    <span class="btn-icon">🔨</span>
+                    Build & Flash
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="ide-main">
+            <!-- Setup Workspace -->
+            <div id="setup-workspace" class="workspace active">
+                <div class="workspace-container">
+                    <div class="panel">
+                        <h2>Robot Configuration</h2>
+                        <p class="help-text">Configure WiFi and Blynk credentials for your ESP32 boards.</p>
+
+                        <form id="settings-form">
+                            <div class="form-section">
+                                <h3>WiFi Settings</h3>
+                                <div class="form-group">
+                                    <label for="wifi_ssid">WiFi SSID</label>
+                                    <input type="text" id="wifi_ssid" name="wifi_ssid" placeholder="Your WiFi network name" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="wifi_password">WiFi Password</label>
+                                    <input type="password" id="wifi_password" name="wifi_password" placeholder="Your WiFi password" required>
+                                </div>
+                            </div>
+
+                            <div class="form-section">
+                                <h3>Blynk Configuration</h3>
+                                <p class="help-text">Get these from your Blynk console: <a href="https://blynk.cloud" target="_blank">blynk.cloud</a></p>
+                                <div class="form-group">
+                                    <label for="blynk_template_id">Template ID</label>
+                                    <input type="text" id="blynk_template_id" name="blynk_template_id" placeholder="TMPLxxxxxx" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="blynk_template_name">Template Name</label>
+                                    <input type="text" id="blynk_template_name" name="blynk_template_name" placeholder="Robot Controller" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="blynk_auth_token">Auth Token</label>
+                                    <input type="text" id="blynk_auth_token" name="blynk_auth_token" placeholder="Your device auth token" required>
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="submit" class="btn-primary">💾 Save Settings</button>
+                                <button type="button" id="load-settings-btn" class="btn-secondary">🔄 Reload</button>
+                            </div>
+                        </form>
+
+                        <div id="settings-status" class="status-message"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Program Workspace -->
+            <div id="program-workspace" class="workspace">
+                <div class="workspace-split">
+                    <div class="blockly-panel">
+                        <div id="blocklyDiv"></div>
+                    </div>
+                    <div class="code-panel">
+                        <div class="panel-header">
+                            <h3>Generated Code Preview</h3>
+                            <button id="toggle-code-btn" class="btn-icon-only">👁️</button>
+                        </div>
+                        <pre id="code-output"></pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pose Teaching Workspace -->
+            <div id="poses-workspace" class="workspace">
+                <div class="workspace-container">
+                    <div class="panel">
+                        <h2>Teach Robot Poses</h2>
+                        <p class="help-text">Use the sliders to position the arm, then save named poses for your program.</p>
+
+                        <div class="pose-editor">
+                            <div class="servo-controls">
+                                <div class="servo-control">
+                                    <label>Base (0-180°)</label>
+                                    <input type="range" id="pose-base" min="0" max="180" value="90">
+                                    <span class="value-display">90°</span>
+                                </div>
+                                <div class="servo-control">
+                                    <label>Shoulder (0-180°)</label>
+                                    <input type="range" id="pose-shoulder" min="0" max="180" value="90">
+                                    <span class="value-display">90°</span>
+                                </div>
+                                <div class="servo-control">
+                                    <label>Elbow (0-180°)</label>
+                                    <input type="range" id="pose-elbow" min="0" max="180" value="90">
+                                    <span class="value-display">90°</span>
+                                </div>
+                                <div class="servo-control">
+                                    <label>Wrist (0-180°)</label>
+                                    <input type="range" id="pose-wrist" min="0" max="180" value="90">
+                                    <span class="value-display">90°</span>
+                                </div>
+                                <div class="servo-control">
+                                    <label>Gripper (0-180°)</label>
+                                    <input type="range" id="pose-gripper" min="0" max="180" value="30">
+                                    <span class="value-display">30°</span>
+                                </div>
+                            </div>
+
+                            <div class="pose-actions">
+                                <button id="save-pose-btn" class="btn-primary">💾 Save Current Pose</button>
+                            </div>
+                        </div>
+
+                        <div class="saved-poses">
+                            <h3>Saved Poses</h3>
+                            <div id="poses-list"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Status Bar -->
+        <footer class="ide-footer">
+            <div id="status-bar">
+                <span class="status-item">
+                    <span class="status-icon">🟢</span>
+                    Server Connected
+                </span>
+                <span class="status-item">
+                    <span class="status-icon">📦</span>
+                    <span id="block-count">0 blocks</span>
+                </span>
+                <span class="status-item">
+                    <span class="status-icon">📍</span>
+                    <span id="pose-count">1 pose</span>
+                </span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Build Modal -->
+    <div id="build-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Building Firmware</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="build-progress">
+                    <div class="spinner"></div>
+                    <p id="build-status">Compiling your program...</p>
+                </div>
+                <div id="build-log"></div>
+                <div id="build-result"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="/static/js/main.js"></script>
+</body>
+</html>
