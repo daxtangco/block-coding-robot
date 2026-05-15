@@ -1,0 +1,56 @@
+======================================================================
+LEGO OBJECT DETECTION - MODEL VALIDATION
+======================================================================
+Loading model: training_output/models/experiment_2_20260508_215052/stage1_synthetic/weights/best.pt
+Results will be saved to: /home/daxtangco/block-coding-robot/training_output/results/validation_best
+
+============================================================
+Running Validation on test set
+============================================================
+WARNING ⚠️ 'save_hybrid' is deprecated and will be removed in the future.
+Ultralytics 8.4.47 🚀 Python-3.12.3 torch-2.11.0+cu130 CPU (Intel Core Ultra 7 255H)
+Model summary (fused): 73 layers, 3,006,818 parameters, 0 gradients, 8.1 GFLOPs
+[34m[1mval: [0mFast image access ✅ (ping: 0.0±0.0 ms, read: 20.8±12.4 MB/s, size: 10.1 KB)
+[K[34m[1mval: [0mScanning /home/daxtangco/block-coding-robot/training_output/prepared_datasets/experiment_2/test/labels... 66 images, 0 backgrounds, 0 corrupt: 13% ━╸────────── 66/498 197.1it/s 0.1s<2.2s[K[34m[1mval: [0mScanning /home/daxtangco/block-coding-robot/training_output/prepared_datasets/experiment_2/test/labels... 152 images, 0 backgrounds, 0 corrupt: 31% ━━━╸──────── 152/498 391.8it/s 0.2s<0.9s[K[34m[1mval: [0mScanning /home/daxtangco/block-coding-robot/training_output/prepared_datasets/experiment_2/test/labels... 245 images, 0 backgrounds, 0 corrupt: 49% ━━━━━╸────── 245/498 545.8it/s 0.3s<0.5s[K[34m[1mval: [0mScanning /home/daxtangco/block-coding-robot/training_output/prepared_datasets/experiment_2/test/labels... 333 images, 0 backgrounds, 0 corrupt: 67% ━━━━━━━━──── 333/498 637.9it/s 0.4s<0.3s[K[34m[1mval: [0mScanning /home/daxtangco/block-coding-robot/training_output/prepared_datasets/experiment_2/test/labels... 415 images, 0 backgrounds, 0 corrupt: 83% ━━━━━━━━━━── 415/498 689.0it/s 0.5s<0.1s[K[34m[1mval: [0mScanning /home/daxtangco/block-coding-robot/training_output/prepared_datasets/experiment_2/test/labels... 485 images, 0 backgrounds, 0 corrupt: 97% ━━━━━━━━━━━╸ 485/498 689.3it/s 0.6s<0.0s[K[34m[1mval: [0mScanning /home/daxtangco/block-coding-robot/training_output/prepared_datasets/experiment_2/test/labels... 498 images, 0 backgrounds, 0 corrupt: 100% ━━━━━━━━━━━━ 498/498 811.0it/s 0.6s
+[34m[1mval: [0mNew cache created: /home/daxtangco/block-coding-robot/training_output/prepared_datasets/experiment_2/test/labels.cache
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 3% ──────────── 1/32 9.3s/it 2.8s<4:48[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 6% ╸─────────── 2/32 4.9s/it 5.1s<2:27[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 9% ━─────────── 3/32 3.9s/it 7.8s<1:54[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 12% ━─────────── 4/32 3.2s/it 10.1s<1:30[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 16% ━╸────────── 5/32 2.8s/it 12.2s<1:16[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 19% ━━────────── 6/32 2.6s/it 14.4s<1:07[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 22% ━━╸───────── 7/32 2.4s/it 16.3s<58.9s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 25% ━━━───────── 8/32 2.4s/it 18.7s<56.8s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 28% ━━━───────── 9/32 2.4s/it 21.1s<54.4s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 31% ━━━╸──────── 10/32 2.3s/it 23.3s<51.2s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 34% ━━━━──────── 11/32 2.2s/it 25.3s<46.0s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 38% ━━━━──────── 12/32 2.1s/it 27.2s<42.4s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 41% ━━━━╸─────── 13/32 2.1s/it 29.4s<40.5s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 44% ━━━━━─────── 14/32 2.3s/it 32.1s<41.1s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 47% ━━━━━╸────── 15/32 2.5s/it 35.2s<41.9s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 50% ━━━━━━────── 16/32 2.6s/it 38.2s<41.9s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 53% ━━━━━━────── 17/32 2.8s/it 41.7s<42.4s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 56% ━━━━━━╸───── 18/32 3.0s/it 45.2s<41.9s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 59% ━━━━━━━───── 19/32 3.0s/it 48.3s<39.5s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 62% ━━━━━━━───── 20/32 3.4s/it 53.3s<41.3s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 66% ━━━━━━━╸──── 21/32 3.6s/it 57.3s<39.6s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 69% ━━━━━━━━──── 22/32 3.7s/it 1:01<37.0s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 72% ━━━━━━━━╸─── 23/32 3.7s/it 1:05<33.4s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 75% ━━━━━━━━━─── 24/32 3.7s/it 1:09<29.6s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 78% ━━━━━━━━━─── 25/32 3.8s/it 1:13<26.4s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 81% ━━━━━━━━━╸── 26/32 3.6s/it 1:16<21.9s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 84% ━━━━━━━━━━── 27/32 3.5s/it 1:19<17.5s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 88% ━━━━━━━━━━── 28/32 3.4s/it 1:23<13.7s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 91% ━━━━━━━━━━╸─ 29/32 3.5s/it 1:26<10.4s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 94% ━━━━━━━━━━━─ 30/32 3.4s/it 1:29<6.7s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 97% ━━━━━━━━━━━╸ 31/32 3.3s/it 1:32<3.3s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 32/32 2.9s/it 1:33
+                   all        498       1793      0.504      0.438      0.412      0.376
+             brick_1x6        377       1180       0.54     0.0636     0.0597     0.0508
+             brick_2x2        111        131      0.453      0.489      0.447      0.418
+             brick_2x4        114        144      0.415      0.556      0.476       0.45
+             plate_1x2        121        142      0.557      0.387      0.454      0.395
+             plate_2x2         82         90      0.493      0.533       0.46      0.412
+             plate_2x4         92        106      0.564      0.597      0.575      0.529
+Speed: 3.0ms preprocess, 109.3ms inference, 0.0ms loss, 66.3ms postprocess per image
+Saving /home/daxtangco/block-coding-robot/runs/detect/val-2/predictions.json...
+Results saved to [1m/home/daxtangco/block-coding-robot/runs/detect/val-2[0m
+
+✓ Metrics saved to: /home/daxtangco/block-coding-robot/training_output/results/validation_best/metrics.json
+
+============================================================
+VALIDATION METRICS REPORT
+============================================================
+
+Overall Metrics:
+  mAP@0.5:       0.4120
+  mAP@0.5:0.95:  0.3758
+  Precision:     0.5036
+  Recall:        0.4375
+  F1 Score:      0.4683
+
+Per-Class Average Precision (AP@0.5):
+  brick_1x6: 0.0508
+  brick_2x2: 0.4177
+  brick_2x4: 0.4502
+  plate_1x2: 0.3950
+  plate_2x2: 0.4120
+  plate_2x4: 0.5293
+✓ Per-class performance plot saved to: /home/daxtangco/block-coding-robot/training_output/results/validation_best/per_class_performance.png
+✓ Metrics summary plot saved to: /home/daxtangco/block-coding-robot/training_output/results/validation_best/metrics_summary.png
+✓ Text report saved to: /home/daxtangco/block-coding-robot/training_output/results/validation_best/validation_report.txt
+
+======================================================================
+VALIDATION COMPLETE
+======================================================================
+
+Results saved to: /home/daxtangco/block-coding-robot/training_output/results/validation_best

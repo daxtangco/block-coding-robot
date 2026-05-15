@@ -1,0 +1,4 @@
+  File "<stdin>", line 4
+    stage1_model =
+                  ^
+SyntaxError: invalid syntax

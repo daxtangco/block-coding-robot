@@ -1,0 +1,55 @@
+======================================================================
+LEGO OBJECT DETECTION - MODEL VALIDATION
+======================================================================
+Loading model: training_output/models/experiment_2_20260510_221315/stage1_synthetic/weights/best.pt
+Results will be saved to: /home/daxtangco/block-coding-robot/training_output/results/validation_best
+
+============================================================
+Running Validation on test set
+============================================================
+WARNING ⚠️ 'save_hybrid' is deprecated and will be removed in the future.
+Ultralytics 8.4.47 🚀 Python-3.12.3 torch-2.11.0+cu130 CPU (Intel Core Ultra 7 255H)
+Model summary (fused): 73 layers, 3,006,818 parameters, 0 gradients, 8.1 GFLOPs
+[34m[1mval: [0mFast image access ✅ (ping: 0.3±0.3 ms, read: 35.6±22.8 MB/s, size: 14.1 KB)
+[K[34m[1mval: [0mScanning /home/daxtangco/block-coding-robot/training_output/prepared_datasets/experiment_2/test/labels.cache... 498 images, 0 backgrounds, 0 corrupt: 100% ━━━━━━━━━━━━ 498/498 42.6Mit/s 0.0s
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 3% ──────────── 1/32 8.4s/it 2.5s<4:21[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 6% ╸─────────── 2/32 4.4s/it 4.6s<2:13[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 9% ━─────────── 3/32 3.3s/it 6.7s<1:36[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 12% ━─────────── 4/32 3.2s/it 9.7s<1:30[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 16% ━╸────────── 5/32 2.6s/it 11.6s<1:11[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 19% ━━────────── 6/32 2.3s/it 13.4s<1:01[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 22% ━━╸───────── 7/32 2.1s/it 15.1s<52.4s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 25% ━━━───────── 8/32 2.0s/it 16.9s<48.2s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 28% ━━━───────── 9/32 2.0s/it 18.8s<45.0s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 31% ━━━╸──────── 10/32 1.9s/it 20.5s<41.6s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 34% ━━━━──────── 11/32 1.9s/it 22.5s<40.4s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 38% ━━━━──────── 12/32 1.8s/it 24.2s<36.9s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 41% ━━━━╸─────── 13/32 1.8s/it 25.8s<33.8s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 44% ━━━━━─────── 14/32 1.9s/it 28.0s<34.0s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 47% ━━━━━╸────── 15/32 2.0s/it 30.5s<34.4s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 50% ━━━━━━────── 16/32 2.1s/it 32.9s<34.1s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 53% ━━━━━━────── 17/32 2.3s/it 35.8s<34.8s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 56% ━━━━━━╸───── 18/32 2.5s/it 38.7s<34.3s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 59% ━━━━━━━───── 19/32 2.7s/it 42.1s<34.8s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 62% ━━━━━━━───── 20/32 2.7s/it 44.8s<32.2s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 66% ━━━━━━━╸──── 21/32 2.6s/it 47.3s<29.0s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 69% ━━━━━━━━──── 22/32 2.6s/it 50.0s<26.4s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 72% ━━━━━━━━╸─── 23/32 2.6s/it 52.3s<23.0s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 75% ━━━━━━━━━─── 24/32 2.6s/it 55.1s<20.8s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 78% ━━━━━━━━━─── 25/32 2.7s/it 58.0s<18.8s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 81% ━━━━━━━━━╸── 26/32 2.7s/it 1:01<16.4s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 84% ━━━━━━━━━━── 27/32 2.7s/it 1:03<13.4s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 88% ━━━━━━━━━━── 28/32 2.6s/it 1:06<10.5s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 91% ━━━━━━━━━━╸─ 29/32 2.7s/it 1:09<8.0s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 94% ━━━━━━━━━━━─ 30/32 2.7s/it 1:11<5.4s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 97% ━━━━━━━━━━━╸ 31/32 2.9s/it 1:15<2.9s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 32/32 2.4s/it 1:15
+                   all        498       1793      0.506      0.441      0.414      0.383
+             brick_1x6        377       1180      0.552     0.0636     0.0597     0.0537
+             brick_2x2        111        131      0.486      0.454      0.457      0.425
+             brick_2x4        114        144      0.455      0.438      0.441      0.424
+             plate_1x2        121        142      0.582      0.352      0.485      0.426
+             plate_2x2         82         90      0.472      0.633      0.505      0.469
+             plate_2x4         92        106      0.487      0.708      0.536        0.5
+Speed: 2.6ms preprocess, 90.5ms inference, 0.0ms loss, 42.4ms postprocess per image
+Saving /home/daxtangco/block-coding-robot/runs/detect/val-3/predictions.json...
+Results saved to [1m/home/daxtangco/block-coding-robot/runs/detect/val-3[0m
+
+✓ Metrics saved to: /home/daxtangco/block-coding-robot/training_output/results/validation_best/metrics.json
+
+============================================================
+VALIDATION METRICS REPORT
+============================================================
+
+Overall Metrics:
+  mAP@0.5:       0.4138
+  mAP@0.5:0.95:  0.3828
+  Precision:     0.5056
+  Recall:        0.4414
+  F1 Score:      0.4713
+
+Per-Class Average Precision (AP@0.5):
+  brick_1x6: 0.0537
+  brick_2x2: 0.4246
+  brick_2x4: 0.4237
+  plate_1x2: 0.4260
+  plate_2x2: 0.4687
+  plate_2x4: 0.4999
+✓ Per-class performance plot saved to: /home/daxtangco/block-coding-robot/training_output/results/validation_best/per_class_performance.png
+✓ Metrics summary plot saved to: /home/daxtangco/block-coding-robot/training_output/results/validation_best/metrics_summary.png
+✓ Text report saved to: /home/daxtangco/block-coding-robot/training_output/results/validation_best/validation_report.txt
+
+======================================================================
+VALIDATION COMPLETE
+======================================================================
+
+Results saved to: /home/daxtangco/block-coding-robot/training_output/results/validation_best
