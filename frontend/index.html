@@ -216,7 +216,36 @@
                     <p id="build-status">Compiling your program...</p>
                 </div>
                 <div id="build-log"></div>
-                <div id="build-result"></div>
+                <div id="build-result" style="display: none;">
+                    <div class="success-message">
+                        <h3>✅ Build Successful!</h3>
+                        <p>Firmware size: <span id="firmware-size">0</span> bytes</p>
+                    </div>
+
+                    <div class="flash-options">
+                        <h3>Choose Flash Method:</h3>
+
+                        <button id="flash-usb-btn" class="flash-option">
+                            <span class="btn-icon">🔌</span>
+                            <div class="flash-option-content">
+                                <strong>Flash via USB</strong>
+                                <small>Connect ESP32 and flash directly from browser</small>
+                            </div>
+                        </button>
+
+                        <button id="download-bin-btn" class="flash-option">
+                            <span class="btn-icon">💾</span>
+                            <div class="flash-option-content">
+                                <strong>Download .bin File</strong>
+                                <small>Flash manually using esptool or Arduino IDE</small>
+                            </div>
+                        </button>
+                    </div>
+
+                    <div id="browser-warning" class="warning-text" style="display: none;">
+                        ⚠️ Web Serial API not supported. Use Chrome/Edge or download the .bin file.
+                    </div>
+                </div>
             </div>
         </div>
     </div>
