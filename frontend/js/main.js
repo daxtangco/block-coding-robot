@@ -46,6 +46,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         await initSetupPanel();
         await initPoseTeaching();
         initBuildPanel();
+        initFlashHandlers();
 
         console.log('✅ IDE ready!');
     } catch (error) {
@@ -53,6 +54,39 @@ document.addEventListener('DOMContentLoaded', async () => {
         alert('Failed to initialize IDE: ' + error.message);
     }
 });
+
+// Initialize flash UI handlers
+function initFlashHandlers() {
+    // Initialize flash UI
+    const flashUI = new FlashUI();
+
+    // Flash USB button
+    document.getElementById('flash-usb-btn')?.addEventListener('click', async () => {
+        // Get firmware URL from build result
+        const firmwareUrl = '/api/build/firmware.bin'; // Adjust based on your API
+
+        // Check browser support
+        if (!new ESP32Flasher().isSupported()) {
+            document.getElementById('browser-warning').style.display = 'block';
+            return;
+        }
+
+        // Hide build modal
+        document.getElementById('build-modal').style.display = 'none';
+
+        // Start flash
+        await flashUI.startFlash(firmwareUrl);
+    });
+
+    // Download bin button
+    document.getElementById('download-bin-btn')?.addEventListener('click', () => {
+        const firmwareUrl = '/api/build/firmware.bin'; // Adjust based on your API
+        const link = document.createElement('a');
+        link.href = firmwareUrl;
+        link.download = 'robot_firmware.bin';
+        link.click();
+    });
+}
 
 // Make Blockly workspace available globally for debugging
 window.getBlocklyWorkspace = () => window.blocklyWorkspace;
