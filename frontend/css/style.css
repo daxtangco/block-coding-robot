@@ -918,3 +918,159 @@ input:checked + .slider:before {
     margin-bottom: 0.25rem;
     color: #333;
 }
+
+/* Validation Checklist */
+.validation-checklist {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background: #f0fdf4;
+    border: 2px solid var(--success-color);
+    border-radius: 0.5rem;
+}
+
+.validation-checklist h3 {
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.validation-items {
+    margin: 1.5rem 0;
+}
+
+.validation-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    background: white;
+    border-radius: 0.25rem;
+    transition: background 0.2s;
+}
+
+.validation-item:hover {
+    background: #f8f9fa;
+}
+
+.validation-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin-right: 0.75rem;
+    cursor: pointer;
+}
+
+.validation-item label {
+    flex: 1;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    transition: all 0.2s;
+}
+
+.validation-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.btn-success {
+    flex: 1;
+    background: var(--success-color);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-success:hover {
+    background: #16a34a;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+}
+
+.btn-warning {
+    flex: 1;
+    background: var(--warning-color);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-warning:hover {
+    background: #d97706;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+}
+
+/* Troubleshooting */
+#troubleshooting-container {
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    background: #fef3c7;
+    border: 2px solid var(--warning-color);
+    border-radius: 0.5rem;
+}
+
+#troubleshooting-container h3 {
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.troubleshooting-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin: 1rem 0;
+}
+
+.option-btn {
+    width: 100%;
+    padding: 1rem;
+    background: white;
+    border: 2px solid var(--border-color);
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-size: 0.95rem;
+    text-align: left;
+    transition: all 0.2s;
+}
+
+.option-btn:hover {
+    border-color: var(--warning-color);
+    background: #fffbeb;
+    transform: translateX(5px);
+}
+
+#troubleshooting-advice {
+    margin-top: 1rem;
+}
+
+#advice-content {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--border-color);
+}
+
+#advice-content h4 {
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+}
+
+#advice-content ol {
+    margin-left: 1.5rem;
+    line-height: 1.8;
+}
+
+#advice-content ol li {
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
