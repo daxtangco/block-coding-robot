@@ -78,6 +78,9 @@ class BlynkSetupGuide {
                 </div>
             </div>
         `;
+
+        // Attach copy handlers after DOM update
+        setTimeout(() => this.attachCopyHandlers(), 0);
     }
 
     generateWidgetSteps() {
@@ -116,6 +119,29 @@ class BlynkSetupGuide {
                 <button class="btn-copy" data-copy="${w.pin}: ${w.label}">Copy</button>
             </div>
         `).join('');
+    }
+
+    attachCopyHandlers() {
+        document.querySelectorAll('.btn-copy').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const textToCopy = e.target.dataset.copy;
+                try {
+                    await navigator.clipboard.writeText(textToCopy);
+                    e.target.textContent = '✓ Copied';
+                    e.target.classList.add('copied');
+                    setTimeout(() => {
+                        e.target.textContent = 'Copy';
+                        e.target.classList.remove('copied');
+                    }, 2000);
+                } catch (err) {
+                    console.error('Copy failed:', err);
+                    e.target.textContent = '✗ Failed';
+                    setTimeout(() => {
+                        e.target.textContent = 'Copy';
+                    }, 2000);
+                }
+            });
+        });
     }
 
     showCustomSetup() {
