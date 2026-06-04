@@ -255,6 +255,12 @@
       "type": "directory"
     },
     {
+      "path": "frontend\\js\\generators\\arduino_cpp.js",
+      "accessCount": 2,
+      "lastAccessed": 1780540737199,
+      "type": "file"
+    },
+    {
       "path": "docs\\HARDWARE_INTEGRATION_TEST_GUIDE.md",
       "accessCount": 1,
       "lastAccessed": 1780510857778,

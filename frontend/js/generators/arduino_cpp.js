@@ -24,9 +24,20 @@ Blockly.Arduino.ORDER_NONE = 99;
 // Workspace to code
 Blockly.Arduino.workspaceToCode = function(workspace) {
     this.init(workspace);
-    const code = this.statementToCode(workspace, '');
-    const cleanCode = this.scrub_(null, code);
-    return cleanCode;
+
+    // Get all top-level blocks
+    const blocks = workspace.getTopBlocks(true);
+    let code = '';
+
+    // Generate code for each top-level block
+    for (let i = 0; i < blocks.length; i++) {
+        const blockCode = this.blockToCode(blocks[i]);
+        if (blockCode) {
+            code += blockCode;
+        }
+    }
+
+    return code;
 };
 
 Blockly.Arduino.init = function(workspace) {
