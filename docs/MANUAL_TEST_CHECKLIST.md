@@ -215,6 +215,126 @@ Complete checklist for testing manual control integration.
 
 ---
 
+## AP Mode Tests
+
+### Basic Connectivity
+- [ ] ESP32 boots and creates WiFi AP (check serial monitor)
+- [ ] SSID format is RobotArm-XXXX (X = hex digits from MAC)
+- [ ] Phone can see and connect to robot WiFi
+- [ ] Password "robot1234" works
+- [ ] Captive portal opens automatically (iOS and Android)
+- [ ] PWA loads at 192.168.4.1
+- [ ] Connection status shows "Connected" (green dot)
+
+### WebSocket Communication
+- [ ] WebSocket connects (check browser console)
+- [ ] Initial state received (servos sync to current positions)
+- [ ] Moving slider sends servo command
+- [ ] Servo moves in real-time (<100ms)
+- [ ] Value display updates (0°-180°)
+- [ ] Mode toggle sends mode command
+- [ ] Reset button sends reset command
+
+### Multi-Client Test
+- [ ] Connect 2 phones simultaneously
+- [ ] Both show "Connected" status
+- [ ] Move slider on Phone A → servo moves, both phones update
+- [ ] Move slider on Phone B → servo moves, both phones update
+- [ ] Disconnect Phone A → Phone B still works
+- [ ] Reconnect Phone A → syncs current state
+
+### Manual Control Test
+- [ ] All 5 sliders control correct servos:
+  - [ ] Base slider → base servo rotates
+  - [ ] Shoulder slider → shoulder joint moves
+  - [ ] Elbow slider → elbow joint moves
+  - [ ] Wrist slider → wrist rotates
+  - [ ] Gripper slider → gripper opens/closes
+- [ ] Servo positions match slider values
+- [ ] No jitter or unexpected movements
+- [ ] Smooth motion (no lag)
+
+### Auto Mode Test
+- [ ] Toggle "Auto" mode → mode indicator changes
+- [ ] Student program runs (servos execute sequence)
+- [ ] Manual sliders disabled during auto mode
+- [ ] Toggle back to "Manual" → regain control
+- [ ] Reset button works in manual mode
+
+### PWA Features Test
+- [ ] "Add to Home Screen" works (iOS and Android)
+- [ ] App icon appears on home screen
+- [ ] Opening from home screen shows full screen (no browser bar)
+- [ ] Service worker caches files (check browser DevTools)
+- [ ] Offline page loads if connection lost
+
+### Error Handling Test
+- [ ] Disconnect WiFi → status shows "Disconnected"
+- [ ] Controls grey out when disconnected
+- [ ] Auto-reconnect works (rejoin WiFi)
+- [ ] State syncs on reconnection
+- [ ] Invalid JSON ignored (check serial monitor)
+
+### Range Test
+- [ ] Connection works at 1 meter
+- [ ] Connection works at 10 meters
+- [ ] Connection works at 20 meters
+- [ ] Note max reliable range: _____ meters
+
+### Interference Test (Classroom Simulation)
+- [ ] 3+ robots powered on nearby
+- [ ] Each has unique SSID
+- [ ] Can connect to specific robot
+- [ ] No cross-talk between robots
+- [ ] Performance acceptable with neighbors
+
+## Regression Tests (Ensure Nothing Broke)
+
+### Build System
+- [ ] Desktop IDE still loads
+- [ ] Setup tab shows AP mode instructions
+- [ ] Build & Flash button works
+- [ ] Compilation succeeds
+- [ ] USB flashing works
+- [ ] Binary size reasonable (<1MB)
+
+### Servo Control (PCA9685)
+- [ ] I2C communication works
+- [ ] All 5 servos respond
+- [ ] Angle mapping correct (0-180°)
+- [ ] Default positions: Base=0, Shoulder=60, Elbow=70, Wrist=60, Gripper=90
+- [ ] No change from previous firmware behavior
+
+### Block Programming
+- [ ] Blockly workspace loads
+- [ ] Can create block programs
+- [ ] Code generation works
+- [ ] Pose definitions included in build
+- [ ] Generated code compiles
+
+## Test Environment
+
+- [ ] **ESP32 Model:** ___________________________
+- [ ] **Phone Model (iOS):** ___________________________
+- [ ] **Phone Model (Android):** ___________________________
+- [ ] **Laptop OS:** ___________________________
+- [ ] **Browser (Desktop):** ___________________________
+- [ ] **Browser (Mobile):** ___________________________
+- [ ] **WiFi Environment:** Home / Classroom / Other: _____
+- [ ] **Number of nearby APs:** _____
+- [ ] **Test Date:** ___________________________
+- [ ] **Tester Name:** ___________________________
+
+## Issues Found
+
+| # | Issue Description | Severity | Status | Notes |
+|---|-------------------|----------|--------|-------|
+| 1 |                   |          |        |       |
+| 2 |                   |          |        |       |
+| 3 |                   |          |        |       |
+
+---
+
 ## Success Criteria
 
 **Phase 1 Complete When:**
