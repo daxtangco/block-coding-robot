@@ -11,7 +11,13 @@
       "Bash(awk '/## Pre-Testing Setup/,/## Frontend Tests/' \"C:/Users/DaxAxisTangco/Documents/block-coding-robot/docs/superpowers/plans/2026-06-03-manual-control-integration.md\")",
       "Bash(awk '/## Frontend Tests/,/## Build System Tests/' \"C:/Users/DaxAxisTangco/Documents/block-coding-robot/docs/superpowers/plans/2026-06-03-manual-control-integration.md\")",
       "Bash(git add *)",
-      "Bash(git commit -m 'fix: add safety checks for Blockly initialization *)"
+      "Bash(git commit -m 'fix: add safety checks for Blockly initialization *)",
+      "Bash(pkill *)",
+      "Bash(python -m uvicorn backend.main:app --reload)",
+      "Bash(cat)",
+      "Bash(python /tmp/test_build.py)",
+      "Bash(python -c ' *)",
+      "Bash(git commit -m 'fix: improve error handling in arduino builder *)"
     ]
   }
 }

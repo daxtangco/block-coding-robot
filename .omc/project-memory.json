@@ -213,15 +213,15 @@
       "type": "file"
     },
     {
-      "path": "docs\\superpowers\\specs\\2026-06-03-hardware-integration-design.md",
-      "accessCount": 3,
-      "lastAccessed": 1780422084131,
+      "path": "backend\\main.py",
+      "accessCount": 4,
+      "lastAccessed": 1780541272177,
       "type": "file"
     },
     {
-      "path": "backend\\main.py",
+      "path": "docs\\superpowers\\specs\\2026-06-03-hardware-integration-design.md",
       "accessCount": 3,
-      "lastAccessed": 1780540140054,
+      "lastAccessed": 1780422084131,
       "type": "file"
     },
     {
@@ -330,6 +330,12 @@
       "path": "docs\\PCA9685_WIRING_GUIDE.md",
       "accessCount": 1,
       "lastAccessed": 1780539287454,
+      "type": "file"
+    },
+    {
+      "path": "backend\\services\\storage.py",
+      "accessCount": 1,
+      "lastAccessed": 1780541396410,
       "type": "file"
     }
   ],
