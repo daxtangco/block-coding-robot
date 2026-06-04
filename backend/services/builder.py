@@ -32,10 +32,11 @@ async def compile_arduino(sketch_content: str, board_fqbn: str = "esp32:esp32:es
         process = await asyncio.create_subprocess_exec(
             *cmd,
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.STDOUT
+            stderr=asyncio.subprocess.STDOUT,
+            cwd=str(Path.cwd())
         )
         stdout, _ = await process.communicate()
-        output = stdout.decode()
+        output = stdout.decode('utf-8', errors='replace')
 
         if process.returncode == 0:
             # Find .bin file
@@ -45,8 +46,10 @@ async def compile_arduino(sketch_content: str, board_fqbn: str = "esp32:esp32:es
             else:
                 return False, f"Build succeeded but .bin not found\n{output}", None
         else:
-            return False, output, None
-    except FileNotFoundError:
-        return False, "arduino-cli not found. Please install and configure it (see docs/ARDUINO_CLI_SETUP.md)", None
+            return False, f"Compilation failed:\n{output}", None
+    except FileNotFoundError as e:
+        return False, f"arduino-cli not found in PATH. Please install and configure it (see docs/ARDUINO_CLI_SETUP.md)\nError: {str(e)}", None
     except Exception as e:
-        return False, f"Build error: {str(e)}", None
+        import traceback
+        error_detail = f"Build error: {str(e)}\n\nTraceback:\n{traceback.format_exc()}"
+        return False, error_detail, None
