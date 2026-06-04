@@ -58,7 +58,14 @@ async function buildWithBlocks(modal) {
     }
 
     // Generate code from Blockly
-    const code = window.generateArduinoCode ? window.generateArduinoCode() : '';
+    let code = '';
+    try {
+        code = window.generateArduinoCode ? window.generateArduinoCode() : '';
+    } catch (error) {
+        console.error('Error generating code:', error);
+        alert('Error generating code from blocks. Please check the console for details.');
+        return;
+    }
 
     if (!code || code.trim() === '') {
         alert('No code to compile! Add some blocks to your program first.');
