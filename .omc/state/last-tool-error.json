@@ -1,0 +1,7 @@
+{
+  "tool_name": "Read",
+  "tool_input_preview": "{\"file_path\":\"C:\\\\Users\\\\DaxAxisTangco\\\\Documents\\\\block-coding-robot\\\\.omc\\\\plans\\\\manual-control-hardware-integration.md\",\"offset\":2140,\"limit\":250}",
+  "error": "File does not exist. Note: your current working directory is C:\\Users\\DaxAxisTangco\\Documents\\block-coding-robot.",
+  "timestamp": "2026-06-03T21:10:08.132Z",
+  "retry_count": 1
+}

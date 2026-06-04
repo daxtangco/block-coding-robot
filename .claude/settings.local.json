@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m uvicorn backend.main:app --reload --port 8000)",
+      "Bash(curl -s http://localhost:8000)",
+      "Bash(node --check \"C:\\\\Users\\\\DaxAxisTangco\\\\Documents\\\\block-coding-robot\\\\frontend\\\\js\\\\flash_ui.js\")",
+      "Bash(curl -s http://localhost:8000/static/js/flash_ui.js)",
+      "Bash(awk '/## Performance Tests/,/## Cross-Browser Tests/' \"C:/Users/DaxAxisTangco/Documents/block-coding-robot/docs/MANUAL_TEST_CHECKLIST.md\")",
+      "Bash(awk '/## Cross-Browser Tests/,/## Regression Tests/' \"C:/Users/DaxAxisTangco/Documents/block-coding-robot/docs/MANUAL_TEST_CHECKLIST.md\")",
+      "Bash(awk '/## Regression Tests/,/## Success Criteria/' \"C:/Users/DaxAxisTangco/Documents/block-coding-robot/docs/MANUAL_TEST_CHECKLIST.md\")",
+      "Bash(awk '/## Pre-Testing Setup/,/## Frontend Tests/' \"C:/Users/DaxAxisTangco/Documents/block-coding-robot/docs/superpowers/plans/2026-06-03-manual-control-integration.md\")",
+      "Bash(awk '/## Frontend Tests/,/## Build System Tests/' \"C:/Users/DaxAxisTangco/Documents/block-coding-robot/docs/superpowers/plans/2026-06-03-manual-control-integration.md\")",
+      "Bash(git add *)"
+    ]
+  }
+}
