@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1a1a1a">
+    <title>Robot Arm Controller</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🤖 Robot Arm Control</h1>
+        </header>
+
+        <div class="status-bar">
+            <span class="status-label">Connection:</span>
+            <span id="connection-status" class="status-indicator connecting">Connecting...</span>
+        </div>
+
+        <main class="controls">
+            <div class="servo-control">
+                <label for="servo-base">Base</label>
+                <div class="slider-container">
+                    <span class="slider-label">0°</span>
+                    <input type="range" id="servo-base" min="0" max="180" value="0" data-channel="0" disabled>
+                    <span class="slider-value" id="value-base">0°</span>
+                    <span class="slider-label">180°</span>
+                </div>
+            </div>
+
+            <div class="servo-control">
+                <label for="servo-shoulder">Shoulder</label>
+                <div class="slider-container">
+                    <span class="slider-label">0°</span>
+                    <input type="range" id="servo-shoulder" min="0" max="180" value="60" data-channel="1" disabled>
+                    <span class="slider-value" id="value-shoulder">60°</span>
+                    <span class="slider-label">180°</span>
+                </div>
+            </div>
+
+            <div class="servo-control">
+                <label for="servo-elbow">Elbow</label>
+                <div class="slider-container">
+                    <span class="slider-label">0°</span>
+                    <input type="range" id="servo-elbow" min="0" max="180" value="70" data-channel="2" disabled>
+                    <span class="slider-value" id="value-elbow">70°</span>
+                    <span class="slider-label">180°</span>
+                </div>
+            </div>
+
+            <div class="servo-control">
+                <label for="servo-wrist">Wrist</label>
+                <div class="slider-container">
+                    <span class="slider-label">0°</span>
+                    <input type="range" id="servo-wrist" min="0" max="180" value="60" data-channel="3" disabled>
+                    <span class="slider-value" id="value-wrist">60°</span>
+                    <span class="slider-label">180°</span>
+                </div>
+            </div>
+
+            <div class="servo-control">
+                <label for="servo-gripper">Gripper</label>
+                <div class="slider-container">
+                    <span class="slider-label">0°</span>
+                    <input type="range" id="servo-gripper" min="0" max="180" value="90" data-channel="4" disabled>
+                    <span class="slider-value" id="value-gripper">90°</span>
+                    <span class="slider-label">180°</span>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <div class="mode-toggle">
+                <span class="mode-label">Mode:</span>
+                <button id="manual-btn" class="mode-btn active" data-mode="false" disabled>Manual</button>
+                <button id="auto-btn" class="mode-btn" data-mode="true" disabled>Auto</button>
+            </div>
+
+            <button id="reset-btn" class="reset-btn" disabled>
+                🔄 Reset Defaults
+            </button>
+        </footer>
+    </div>
+
+    <script src="/app.js"></script>
+</body>
+</html>
