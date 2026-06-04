@@ -1,0 +1,598 @@
+=============================================================================
+                    AP MODE INTEGRATION TEST RESULTS
+=============================================================================
+
+TEST DATE: ___________________________
+TESTER NAME: ___________________________
+HARDWARE SETUP: ___________________________
+WiFi Environment: Home / Classroom / Other: ___________________
+
+
+=============================================================================
+TEST ENVIRONMENT
+=============================================================================
+
+[ ] ESP32 Model: _______________________________
+[ ] Phone Model (iOS): _______________________________
+[ ] Phone Model (Android): _______________________________
+[ ] Laptop OS: _______________________________
+[ ] Browser (Desktop): _______________________________
+[ ] Browser (Mobile): _______________________________
+[ ] WiFi Network Name: _______________________________
+[ ] Number of nearby APs: _______________________________
+
+
+=============================================================================
+PART 1: SOFTWARE TESTING (No Hardware Required)
+=============================================================================
+
+Expected time: 15-20 minutes
+
+--- Test 1.1: Server Startup ---
+[ ] Server starts without errors at http://127.0.0.1:8000
+[ ] Terminal shows "Application startup complete"
+
+--- Test 1.2: IDE Loads ---
+[ ] IDE accessible at http://localhost:8000
+[ ] Header shows "🤖 Block Robot IDE"
+[ ] Four tabs visible: Setup | Blynk Setup | Teach Poses | Program
+[ ] No console errors (F12 → Console tab)
+
+--- Test 1.3: Tab Switching ---
+[ ] Setup tab loads and displays correctly
+[ ] Blynk Setup tab loads and displays correctly
+[ ] Teach Poses tab loads and displays correctly
+[ ] Program tab loads and displays correctly
+[ ] Tab switching is smooth (no flickering)
+
+--- Test 1.4: Setup Tab - Save Settings ---
+[ ] Setup form has all required fields (WiFi SSID, Password, Blynk credentials)
+[ ] Can fill in test credentials: TestWiFi / password123 / TMPL123 / test
+[ ] "Save Settings" button works
+[ ] Green success message appears: "✅ Settings saved successfully"
+[ ] Page reload preserves settings
+[ ] Settings file created: projects/default/settings.json
+
+--- Test 1.5: Blynk Setup Tab - Widget Guide ---
+[ ] Two buttons visible: "Standard Setup" and "Custom Setup"
+[ ] Standard Setup button shows Blynk app mockup
+[ ] Mockup shows 5 sliders (Base, Shoulder, Elbow, Wrist, Gripper)
+[ ] Mockup shows 1 switch (Auto Mode)
+[ ] Checklist items work (can check/uncheck)
+[ ] Copy buttons copy text to clipboard
+[ ] Copy button shows "✓ Copied" feedback
+
+--- Test 1.6: Web Serial API Detection ---
+[ ] Browser console detects Web Serial support correctly
+[ ] Chrome/Edge show: true
+[ ] Firefox/Safari show: false (with warning)
+
+--- Test 1.7: Template GPIO Pins ---
+[ ] GPIO pins 25-33 assigned to servos
+[ ] Verification script confirms all pins correct:
+    [ ] PIN_BASE = GPIO 25
+    [ ] PIN_SHOULDER = GPIO 26
+    [ ] PIN_ELBOW = GPIO 27
+    [ ] PIN_WRIST = GPIO 32
+    [ ] PIN_GRIPPER = GPIO 33
+
+**PART 1 SUMMARY:** [ ] PASS [ ] FAIL
+Notes: _________________________________________________________________
+
+
+=============================================================================
+PART 2: HARDWARE SETUP (Physical ESP32 + Servos)
+=============================================================================
+
+Expected time: 20-30 minutes
+
+--- Test 2.1: Gather Materials ---
+[ ] ESP32 board available (check: not damaged, USB port intact)
+[ ] 5 servos available (check: wires not frayed)
+[ ] 5V DC power supply available (2A minimum)
+[ ] Jumper wires available (10-15 wires)
+[ ] USB cable for ESP32 available
+[ ] Multimeter available (optional)
+
+--- Test 2.2: Power Supply Verification (Optional) ---
+[ ] Multimeter available
+[ ] Set to DC voltage mode (20V range)
+[ ] Power supply voltage reads 5.0-6.0V ✅
+[ ] Voltage NOT too low (<4.5V) ✅
+[ ] Voltage NOT too high (>6.5V) ✅
+
+--- Test 2.3: Servo Wiring Correct ---
+[ ] All 5 servo brown wires connected to ground rail
+[ ] All 5 servo red wires connected to +5V power rail
+[ ] Power supply GND connected to ESP32 GND (SHARED GROUND)
+[ ] Servo signal wires to correct GPIO pins:
+    [ ] Base servo orange → GPIO 25
+    [ ] Shoulder servo orange → GPIO 26
+    [ ] Elbow servo orange → GPIO 27
+    [ ] Wrist servo orange → GPIO 32
+    [ ] Gripper servo orange → GPIO 33
+[ ] No visible shorts between power and ground
+[ ] No servo power connected to ESP32 VIN or 5V pins
+[ ] Photo taken of final wiring
+
+--- Test 2.4: Initial Power Test ---
+[ ] External power supply turned ON
+[ ] Servos do NOT move unexpectedly (no control signal yet)
+[ ] Servos do NOT get hot immediately
+[ ] No visible smoke or burning smell
+[ ] Power supply turned OFF after test
+
+**PART 2 SUMMARY:** [ ] PASS [ ] FAIL
+Notes: _________________________________________________________________
+
+
+=============================================================================
+PART 3: FIRMWARE FLASHING
+=============================================================================
+
+Expected time: 15-20 minutes
+
+--- Test 3.1: Configure Real Credentials ---
+[ ] Real WiFi SSID obtained: ___________________________
+[ ] Real WiFi Password obtained: ___________________________
+[ ] Blynk Template ID obtained: ___________________________
+[ ] Blynk Auth Token obtained: ___________________________
+[ ] Credentials entered in Setup tab
+[ ] "Save Settings" clicked
+[ ] Green success message appeared
+
+--- Test 3.2: Build Firmware ---
+[ ] arduino-cli installed (or build skipped if not available)
+[ ] Click "Build" button in IDE
+[ ] Build modal appears with spinner
+[ ] Compilation completes (30-60 seconds)
+[ ] Success message: "✅ Build Successful!"
+[ ] Firmware size displayed (e.g., "487 KB")
+[ ] Flash options appear: "Flash via USB" and "Download .bin"
+
+--- Test 3.3: Flash via USB ---
+[ ] ESP32 plugged into computer via USB
+[ ] Windows/Mac installed USB drivers
+[ ] Click "Flash via USB" button
+[ ] Browser permission dialog appears
+[ ] Select correct ESP32 COM port
+[ ] Flash modal shows progress
+[ ] All steps complete:
+    [ ] ✅ Serial port selected
+    [ ] ✅ Connected to ESP32
+    [ ] ✅ Firmware downloaded
+    [ ] ✅ Firmware flashed
+    [ ] ✅ ESP32 rebooting...
+[ ] Final message: "✅ Firmware flashed successfully!"
+
+--- Test 3.4: Serial Monitor Check ---
+[ ] Serial monitor visible in flash modal (or separate terminal)
+[ ] Boot messages appear:
+    [ ] "Arm controller ready"
+    [ ] "Serving AP mode..." or similar
+    [ ] "Access Point SSID: RobotArm-XXXX" (X = hex from MAC)
+[ ] No error messages in serial output
+[ ] No "Connection failed" messages
+
+**PART 3 SUMMARY:** [ ] PASS [ ] FAIL
+Notes: _________________________________________________________________
+
+
+=============================================================================
+PART 4: HARDWARE VALIDATION - AP MODE CONNECTIVITY
+=============================================================================
+
+Expected time: 15-20 minutes
+
+--- Test 4.1: AP Mode Detection ---
+[ ] ESP32 boots and creates WiFi AP (check serial monitor)
+[ ] SSID format is "RobotArm-XXXX" (X = hex digits)
+[ ] Phone WiFi settings show new "RobotArm-XXXX" network
+[ ] Password is "robot1234"
+[ ] Password works (phone connects successfully)
+
+--- Test 4.2: Captive Portal & PWA Load ---
+[ ] Captive portal opens automatically (iOS: works, Android: works)
+[ ] If captive portal doesn't open, manually navigate to http://192.168.4.1
+[ ] PWA loads successfully
+[ ] Header shows "🤖 Block Robot Controller"
+[ ] Connection status shows "Connected" (green dot)
+[ ] Current servo positions displayed
+
+--- Test 4.3: WebSocket Communication ---
+[ ] Browser console shows WebSocket connected (check DevTools)
+[ ] Initial state received (servos sync to current positions)
+[ ] Moving slider sends servo command immediately
+[ ] Servo responds in real-time (<100ms)
+[ ] Value display updates (0° - 180°)
+[ ] Mode toggle sends mode command
+[ ] Reset button sends reset command
+
+--- Test 4.4: Manual Servo Control - Base (GPIO 25) ---
+[ ] Auto Mode switch is OFF
+[ ] Base slider visible and responsive
+[ ] Move slider to 0° → Base servo at minimum position ✅
+[ ] Move slider to 180° → Base servo at maximum position ✅
+[ ] Move slider to 90° → Base servo centered ✅
+[ ] Slider moves smoothly, servo follows smoothly
+[ ] No jitter or unexpected movements
+
+--- Test 4.5: Manual Servo Control - Shoulder (GPIO 26) ---
+[ ] Shoulder slider visible and responsive
+[ ] Correct servo responds (not Base, not other servos)
+[ ] Move slider from 0° to 180° smoothly
+[ ] Servo follows smoothly without jitter
+[ ] Movement is synchronized with slider
+
+--- Test 4.6: Manual Servo Control - Elbow (GPIO 27) ---
+[ ] Elbow slider visible and responsive
+[ ] Correct servo responds
+[ ] Move slider from 0° to 180° smoothly
+[ ] Servo follows smoothly without jitter
+
+--- Test 4.7: Manual Servo Control - Wrist (GPIO 32) ---
+[ ] Wrist slider visible and responsive
+[ ] Correct servo responds
+[ ] Move slider from 0° to 180° smoothly
+[ ] Servo follows smoothly without jitter
+
+--- Test 4.8: Manual Servo Control - Gripper (GPIO 33) ---
+[ ] Gripper slider visible and responsive
+[ ] Move slider to 30° (open position) → Gripper opens ✅
+[ ] Move slider to 90° (closed position) → Gripper closes ✅
+[ ] Opening/closing repeatable multiple times
+[ ] Gripper responds smoothly
+
+--- Test 4.9: Auto Mode Toggle ---
+[ ] "Auto" mode button/switch visible
+[ ] Toggle to ON → mode indicator shows "Auto"
+[ ] Toggle to OFF → mode indicator shows "Manual"
+[ ] Manual sliders work when Manual mode active
+[ ] Sliders may be disabled during Auto mode (future feature)
+
+--- Test 4.10: Reset Button ---
+[ ] Reset button visible
+[ ] Click Reset → servos move to default positions
+[ ] Default positions correct:
+    [ ] Base = 0°
+    [ ] Shoulder = 60°
+    [ ] Elbow = 70°
+    [ ] Wrist = 60°
+    [ ] Gripper = 90°
+
+--- Test 4.11: Connection Status Indicator ---
+[ ] Status indicator shows "Connected" when WiFi active
+[ ] Color is green
+[ ] Status indicator shows "Disconnected" when WiFi lost
+[ ] Color changes to red
+
+--- Test 4.12: PWA Features ---
+[ ] "Add to Home Screen" option available (iOS and Android)
+[ ] App can be installed to home screen
+[ ] Opening from home screen shows full-screen app (no browser bar)
+[ ] Service worker caches files (check browser DevTools)
+[ ] Offline page loads if connection lost temporarily
+
+**PART 4 SUMMARY:** [ ] PASS [ ] FAIL
+Notes: _________________________________________________________________
+
+
+=============================================================================
+PART 5: MULTI-CLIENT TESTING
+=============================================================================
+
+Expected time: 15-20 minutes
+
+--- Test 5.1: Two Phones Connected Simultaneously ---
+[ ] Phone A connects to RobotArm-XXXX
+[ ] Phone B connects to same RobotArm-XXXX
+[ ] Both phones show "Connected" status (green)
+[ ] Both phones show same servo positions
+
+--- Test 5.2: Command Synchronization ---
+[ ] Phone A: Move Base slider to 45°
+[ ] Both phones show Base at 45° immediately
+[ ] Phone B: Move Shoulder slider to 120°
+[ ] Both phones show Shoulder at 120° immediately
+[ ] Servo positions match on both phones after each command
+
+--- Test 5.3: Disconnection & Reconnection ---
+[ ] Phone A: Click disconnect or leave WiFi
+[ ] Phone B: Still shows "Connected" and can control arm
+[ ] Phone A: Reconnect to RobotArm-XXXX
+[ ] Phone A: Syncs current arm position from Phone B's commands
+[ ] No conflicts or race conditions
+
+--- Test 5.4: Concurrent Commands ---
+[ ] Phone A and Phone B send commands simultaneously
+[ ] No crashes or errors
+[ ] Servos handle commands correctly
+[ ] Last command wins (or commands queue properly)
+
+**PART 5 SUMMARY:** [ ] PASS [ ] FAIL
+Notes: _________________________________________________________________
+
+
+=============================================================================
+PART 6: RANGE & INTERFERENCE TESTING
+=============================================================================
+
+Expected time: 10-15 minutes
+
+--- Test 6.1: Range Test ---
+[ ] Connection works at 1 meter range
+[ ] Connection works at 5 meters range
+[ ] Connection works at 10 meters range
+[ ] Connection works at 20 meters range (if possible)
+[ ] Maximum reliable range: _____________ meters
+[ ] Performance degradation noted at _____________ meters
+
+--- Test 6.2: WiFi Interference Test (Classroom Simulation) ---
+[ ] 2+ other WiFi networks visible in area
+[ ] Can still connect to RobotArm-XXXX network
+[ ] Connection stable despite interference
+[ ] No cross-talk with other networks
+[ ] Performance acceptable in noisy environment
+
+--- Test 6.3: Multiple Robots Test (if available) ---
+[ ] 2+ robots powered on nearby
+[ ] Each has unique SSID: RobotArm-XXXX (different XXXX)
+[ ] Can connect to specific robot by SSID
+[ ] No cross-talk between robots
+[ ] Each robot responds only to its own commands
+
+**PART 6 SUMMARY:** [ ] PASS [ ] FAIL
+Notes: _________________________________________________________________
+
+
+=============================================================================
+PART 7: ERROR HANDLING & EDGE CASES
+=============================================================================
+
+Expected time: 10-15 minutes
+
+--- Test 7.1: Disconnect WiFi ---
+[ ] WiFi active and connected
+[ ] Disable WiFi on phone (WiFi toggle OFF)
+[ ] Status shows "Disconnected" immediately
+[ ] Controls are greyed out / disabled
+[ ] Error message appears (if applicable)
+
+--- Test 7.2: Reconnect After Disconnect ---
+[ ] Re-enable WiFi on phone
+[ ] Device reconnects to RobotArm-XXXX automatically
+[ ] Status shows "Connected" again
+[ ] State is synced (arm position matches current position)
+[ ] Controls are re-enabled
+
+--- Test 7.3: Invalid Commands Ignored ---
+[ ] Send malformed JSON in WebSocket (advanced test)
+[ ] ESP32 serial monitor shows no errors
+[ ] Device continues to function
+[ ] Next valid command works correctly
+
+--- Test 7.4: Browser Refresh ---
+[ ] Page fully loaded
+[ ] Click browser refresh (F5)
+[ ] PWA reloads and reconnects
+[ ] State is synced to current arm position
+[ ] All controls work after refresh
+
+--- Test 7.5: Browser Close & Reopen ---
+[ ] Close browser/app
+[ ] Reopen PWA or navigate to 192.168.4.1
+[ ] Reconnects to AP
+[ ] State is synced
+[ ] Controls work
+
+**PART 7 SUMMARY:** [ ] PASS [ ] FAIL
+Notes: _________________________________________________________________
+
+
+=============================================================================
+PART 8: REGRESSION TESTS (Existing Features)
+=============================================================================
+
+Expected time: 5-10 minutes
+
+--- Test 8.1: Desktop IDE Still Works ---
+[ ] Desktop IDE loads at http://localhost:8000 (from laptop)
+[ ] All tabs work (Setup, Blynk Setup, Teach Poses, Program)
+[ ] Build & Flash button works
+[ ] Firmware compiles successfully
+[ ] USB flashing works
+
+--- Test 8.2: Setup Tab Shows AP Mode Instructions ---
+[ ] Setup tab displays instructions for AP mode
+[ ] WiFi SSID and Password fields are present
+[ ] Instructions mention "robot1234" default password
+
+--- Test 8.3: Teach Poses Still Works ---
+[ ] Teach Poses tab loads
+[ ] Servo sliders move and update angles
+[ ] Can save poses
+[ ] Poses appear in grid
+[ ] Can delete poses (except HOME)
+
+--- Test 8.4: Program Tab Still Works ---
+[ ] Program tab loads Blockly workspace
+[ ] Can drag blocks into workspace
+[ ] Code preview updates
+[ ] Can create block programs
+
+--- Test 8.5: PCA9685 Servo Control ---
+[ ] I2C communication works (if PCA9685 installed)
+[ ] All 5 servos respond to commands
+[ ] Angle mapping correct (0-180°)
+[ ] Default positions correct
+
+**PART 8 SUMMARY:** [ ] PASS [ ] FAIL
+Notes: _________________________________________________________________
+
+
+=============================================================================
+PERFORMANCE METRICS
+=============================================================================
+
+--- Page Load Time ---
+Desktop IDE load time: ____________ seconds (target: <2s)
+Mobile PWA load time: ____________ seconds (target: <2s)
+
+--- Responsiveness ---
+Slider to servo response time: ____________ ms (target: <100ms)
+Tab switching time: ____________ ms (target: <100ms)
+Mode toggle response time: ____________ ms (target: <100ms)
+
+--- Reliability ---
+Commands sent: ____________
+Commands successful: ____________
+Success rate: ____________ % (target: >99%)
+
+--- Connection Quality ---
+WebSocket latency: ____________ ms
+Packet loss: ____________ % (target: 0%)
+Reconnection time: ____________ seconds (target: <5s)
+
+
+=============================================================================
+ISSUES FOUND
+=============================================================================
+
+Issue #1
+--------
+Description: ________________________________________________________________
+Severity: [ ] Critical [ ] High [ ] Medium [ ] Low
+Status: [ ] Blocking [ ] Workaround available [ ] Non-blocking
+Steps to reproduce: ________________________________________________________
+Expected behavior: _________________________________________________________
+Actual behavior: ___________________________________________________________
+Notes: _____________________________________________________________________
+
+Issue #2
+--------
+Description: ________________________________________________________________
+Severity: [ ] Critical [ ] High [ ] Medium [ ] Low
+Status: [ ] Blocking [ ] Workaround available [ ] Non-blocking
+Steps to reproduce: ________________________________________________________
+Expected behavior: _________________________________________________________
+Actual behavior: ___________________________________________________________
+Notes: _____________________________________________________________________
+
+Issue #3
+--------
+Description: ________________________________________________________________
+Severity: [ ] Critical [ ] High [ ] Medium [ ] Low
+Status: [ ] Blocking [ ] Workaround available [ ] Non-blocking
+Steps to reproduce: ________________________________________________________
+Expected behavior: _________________________________________________________
+Actual behavior: ___________________________________________________________
+Notes: _____________________________________________________________________
+
+
+=============================================================================
+SUCCESS CRITERIA
+=============================================================================
+
+All tests considered PASS when:
+
+Software Testing (Part 1):
+[ ] All 7 sub-tests pass
+[ ] No console errors in browser
+[ ] Settings persist across page reload
+
+Hardware Setup (Part 2):
+[ ] Power supply verified at 5-6V
+[ ] Wiring correct and no shorts
+[ ] Initial power test successful
+
+Firmware Flashing (Part 3):
+[ ] Build completes without errors
+[ ] Flash via USB succeeds
+[ ] Serial monitor shows clean boot
+[ ] No "Connection failed" messages
+
+Hardware Validation (Part 4):
+[ ] All 12 sub-tests pass
+[ ] All 5 servos respond to commands
+[ ] Servo positions match slider values
+[ ] Connection status indicator works
+[ ] PWA features functional
+
+Multi-Client Testing (Part 5):
+[ ] All 4 sub-tests pass
+[ ] Two phones connect simultaneously
+[ ] Commands synchronize across both phones
+[ ] Disconnection/reconnection works smoothly
+
+Range & Interference (Part 6):
+[ ] Connection works at 10+ meters
+[ ] No cross-talk between robots
+[ ] Performance acceptable with interference
+
+Error Handling (Part 7):
+[ ] All 5 edge cases handled gracefully
+[ ] Device recovers from disconnection
+[ ] Invalid commands don't crash system
+
+Regression Tests (Part 8):
+[ ] Desktop IDE unaffected
+[ ] Existing features still work
+[ ] No breaking changes
+
+OVERALL VERDICT:
+[ ] READY FOR DEPLOYMENT - All tests pass, no critical issues
+[ ] MINOR FIXES NEEDED - Some issues found, all low priority
+[ ] MAJOR FIXES NEEDED - Some high/critical issues found, not ready
+[ ] BLOCKING ISSUES - Critical issues prevent use, cannot proceed
+
+
+=============================================================================
+TESTER SIGN-OFF
+=============================================================================
+
+This integration test was completed to verify the AP mode implementation
+for the Block Robot Arm Controller project.
+
+Testing commenced: ___________________________
+Testing completed: ___________________________
+Total time spent: ___________________________
+
+By signing below, I certify that:
+- I performed all applicable tests listed above
+- I recorded results honestly and accurately
+- I noted all issues encountered
+- I verified servo responses with physical observation
+- I tested both single and multi-client scenarios
+
+Tester Name (Print): ___________________________
+
+Tester Signature: ___________________________
+
+Date: ___________________________
+
+
+=============================================================================
+COMMENTS & RECOMMENDATIONS
+=============================================================================
+
+Overall testing experience: _______________________________________________
+
+What worked well: __________________________________________________________
+
+What was challenging: ______________________________________________________
+
+Suggested improvements: _____________________________________________________
+
+Ready for student deployment: [ ] Yes [ ] No [ ] With conditions
+
+If "With conditions", specify: ____________________________________________
+
+=============================================================================
+END OF TEST RESULTS
+=============================================================================
+
+For questions about this test procedure, see:
+- docs/HARDWARE_INTEGRATION_TEST_GUIDE.md
+- docs/MANUAL_TEST_CHECKLIST.md
+- docs/AP_MODE_SETUP.md
+- docs/TROUBLESHOOTING_AP_MODE.md
