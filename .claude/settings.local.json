@@ -10,7 +10,8 @@
       "Bash(awk '/## Regression Tests/,/## Success Criteria/' \"C:/Users/DaxAxisTangco/Documents/block-coding-robot/docs/MANUAL_TEST_CHECKLIST.md\")",
       "Bash(awk '/## Pre-Testing Setup/,/## Frontend Tests/' \"C:/Users/DaxAxisTangco/Documents/block-coding-robot/docs/superpowers/plans/2026-06-03-manual-control-integration.md\")",
       "Bash(awk '/## Frontend Tests/,/## Build System Tests/' \"C:/Users/DaxAxisTangco/Documents/block-coding-robot/docs/superpowers/plans/2026-06-03-manual-control-integration.md\")",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit -m 'fix: add safety checks for Blockly initialization *)"
     ]
   }
 }

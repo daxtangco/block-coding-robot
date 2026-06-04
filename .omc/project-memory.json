@@ -225,6 +225,12 @@
       "type": "file"
     },
     {
+      "path": "frontend\\js\\blocks\\index.js",
+      "accessCount": 3,
+      "lastAccessed": 1780540525443,
+      "type": "file"
+    },
+    {
       "path": "frontend\\js\\web_serial.js",
       "accessCount": 2,
       "lastAccessed": 1780519796323,
@@ -241,6 +247,12 @@
       "accessCount": 2,
       "lastAccessed": 1780540236919,
       "type": "file"
+    },
+    {
+      "path": "frontend/index.html",
+      "accessCount": 2,
+      "lastAccessed": 1780540522832,
+      "type": "directory"
     },
     {
       "path": "docs\\HARDWARE_INTEGRATION_TEST_GUIDE.md",
@@ -313,12 +325,6 @@
       "accessCount": 1,
       "lastAccessed": 1780539287454,
       "type": "file"
-    },
-    {
-      "path": "frontend/index.html",
-      "accessCount": 1,
-      "lastAccessed": 1780540176494,
-      "type": "directory"
     }
   ],
   "userDirectives": []

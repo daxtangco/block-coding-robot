@@ -8,6 +8,12 @@ import '../generators/arduino_cpp.js';
 export async function initBlockly() {
     const blocklyDiv = document.getElementById('blocklyDiv');
 
+    // Skip if blocklyDiv doesn't exist (not on program workspace)
+    if (!blocklyDiv) {
+        console.log('⚠️ Blockly div not found, skipping initialization');
+        return;
+    }
+
     // Create toolbox
     const toolbox = {
         'kind': 'categoryToolbox',
@@ -103,16 +109,30 @@ export async function initBlockly() {
 function updateCodePreview() {
     if (!window.blocklyWorkspace) return;
 
-    const code = Blockly.Arduino.workspaceToCode(window.blocklyWorkspace);
-    document.getElementById('code-output').textContent = code || '// Add blocks to see generated code';
+    try {
+        const code = Blockly.Arduino.workspaceToCode(window.blocklyWorkspace);
+        const codeOutput = document.getElementById('code-output');
+        if (codeOutput) {
+            codeOutput.textContent = code || '// Add blocks to see generated code';
+        }
+    } catch (error) {
+        console.error('Error updating code preview:', error);
+    }
 }
 
 function updateBlockCount() {
     if (!window.blocklyWorkspace) return;
 
-    const blocks = window.blocklyWorkspace.getAllBlocks();
-    const count = blocks.length;
-    document.getElementById('block-count').textContent = `${count} block${count !== 1 ? 's' : ''}`;
+    try {
+        const blocks = window.blocklyWorkspace.getAllBlocks();
+        const count = blocks.length;
+        const blockCount = document.getElementById('block-count');
+        if (blockCount) {
+            blockCount.textContent = `${count} block${count !== 1 ? 's' : ''}`;
+        }
+    } catch (error) {
+        console.error('Error updating block count:', error);
+    }
 }
 
 // Update pose dropdown options dynamically
