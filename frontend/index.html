@@ -22,10 +22,6 @@
                         <span class="tab-icon">⚙️</span>
                         Setup
                     </button>
-                    <button class="tab" data-workspace="blynk-setup">
-                        <span class="tab-icon">📱</span>
-                        Blynk Setup
-                    </button>
                     <button class="tab" data-workspace="poses">
                         <span class="tab-icon">🎯</span>
                         Teach Poses
@@ -52,68 +48,41 @@
                 <div class="workspace-container">
                     <div class="panel">
                         <h2>Robot Configuration</h2>
-                        <p class="help-text">Configure WiFi and Blynk credentials for your ESP32 boards.</p>
+                        <p class="help-text">Your robot runs in Access Point mode - no WiFi setup needed!</p>
+
+                        <div class="info-box">
+                            <h3>📱 How to Connect</h3>
+                            <ol>
+                                <li>Power on your robot</li>
+                                <li>Open WiFi settings on your phone</li>
+                                <li>Connect to network: <strong>RobotArm-XXXX</strong></li>
+                                <li>Password: <strong>robot1234</strong></li>
+                                <li>Browser will open automatically with controls</li>
+                            </ol>
+                        </div>
 
                         <form id="settings-form">
                             <div class="form-section">
-                                <h3>WiFi Settings</h3>
-                                <div class="form-group">
-                                    <label for="wifi_ssid">WiFi SSID</label>
-                                    <input type="text" id="wifi_ssid" name="wifi_ssid" placeholder="Your WiFi network name" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="wifi_password">WiFi Password</label>
-                                    <input type="password" id="wifi_password" name="wifi_password" placeholder="Your WiFi password" required>
-                                </div>
-                            </div>
+                                <h3>Access Point Settings (Optional)</h3>
+                                <p class="help-text">Customize your robot's WiFi network</p>
 
-                            <div class="form-section">
-                                <h3>Blynk Configuration</h3>
-                                <p class="help-text">Get these from your Blynk console: <a href="https://blynk.cloud" target="_blank">blynk.cloud</a></p>
                                 <div class="form-group">
-                                    <label for="blynk_template_id">Template ID</label>
-                                    <input type="text" id="blynk_template_id" name="blynk_template_id" placeholder="TMPLxxxxxx" required>
+                                    <label for="ap_ssid_suffix">Network Name Suffix</label>
+                                    <input type="text" id="ap_ssid_suffix" name="ap_ssid_suffix" placeholder="Leave blank for auto (MAC address)">
                                 </div>
+
                                 <div class="form-group">
-                                    <label for="blynk_template_name">Template Name</label>
-                                    <input type="text" id="blynk_template_name" name="blynk_template_name" placeholder="Robot Controller" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="blynk_auth_token">Auth Token</label>
-                                    <input type="text" id="blynk_auth_token" name="blynk_auth_token" placeholder="Your device auth token" required>
+                                    <label for="ap_password">Network Password</label>
+                                    <input type="password" id="ap_password" name="ap_password" value="robot1234">
                                 </div>
                             </div>
 
                             <div class="form-actions">
                                 <button type="submit" class="btn-primary">💾 Save Settings</button>
-                                <button type="button" id="load-settings-btn" class="btn-secondary">🔄 Reload</button>
                             </div>
                         </form>
 
                         <div id="settings-status" class="status-message"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Blynk Setup Workspace -->
-            <div id="blynk-setup-workspace" class="workspace">
-                <div class="workspace-container">
-                    <div class="panel">
-                        <h2>Configure Blynk Mobile App</h2>
-                        <p class="help-text">Follow this guide to set up widgets in your Blynk mobile app.</p>
-
-                        <div class="setup-mode-selector">
-                            <button id="standard-setup-btn" class="btn-primary">
-                                📋 Standard Setup (Recommended)
-                            </button>
-                            <button id="custom-setup-btn" class="btn-secondary">
-                                🔧 Custom Setup
-                            </button>
-                        </div>
-
-                        <div id="blynk-guide-container" style="display: none;">
-                            <!-- Content populated by blynk_setup.js -->
-                        </div>
                     </div>
                 </div>
             </div>
@@ -254,6 +223,5 @@
     <script src="/static/js/web_serial.js"></script>
     <script src="/static/js/flash_ui.js"></script>
     <script type="module" src="/static/js/main.js"></script>
-    <script type="module" src="/static/js/blynk_setup.js"></script>
 </body>
 </html>

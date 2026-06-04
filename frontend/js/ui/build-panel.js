@@ -11,8 +11,8 @@ export function initBuildPanel() {
         const activeTab = document.querySelector('.workspace-tabs .tab.active');
         const activeWorkspace = activeTab?.dataset.workspace;
 
-        // If on Setup or Blynk Setup tab, build for manual mode
-        if (activeWorkspace === 'setup' || activeWorkspace === 'blynk-setup') {
+        // If on Setup tab, build for manual mode (AP mode)
+        if (activeWorkspace === 'setup') {
             await buildForManualMode(modal);
             return;
         }
