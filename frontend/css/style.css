@@ -190,6 +190,36 @@ body {
     text-decoration: none;
 }
 
+/* Info Box */
+.info-box {
+    background: #eff6ff;
+    border: 2px solid #3b82f6;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.info-box h3 {
+    color: #1e40af;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+}
+
+.info-box ol {
+    margin-left: 1.5rem;
+    line-height: 1.8;
+}
+
+.info-box li {
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+
+.info-box strong {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
 /* Form Styles */
 .form-section {
     margin-bottom: 2rem;
