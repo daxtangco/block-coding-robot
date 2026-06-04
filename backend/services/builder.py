@@ -1,10 +1,47 @@
 import asyncio
 import uuid
+import subprocess
 from pathlib import Path
 from typing import Tuple, Optional
+from concurrent.futures import ThreadPoolExecutor
 
 BUILDS_DIR = Path("builds")
 BUILDS_DIR.mkdir(exist_ok=True)
+
+def get_template_path(use_pca9685: bool = True, use_ap_mode: bool = False) -> Path:
+    """Get the appropriate firmware template path."""
+    templates_dir = Path("backend/templates")
+
+    if use_ap_mode:
+        # AP mode template (always uses PCA9685)
+        return templates_dir / "arm_controller_ap_mode.ino"
+    elif use_pca9685:
+        # PCA9685 template with Blynk (legacy)
+        return templates_dir / "arm_controller_pca9685.ino"
+    else:
+        # Direct GPIO control (legacy)
+        return templates_dir / "arm_controller.ino"
+
+# Thread pool for running subprocess on Windows
+_executor = ThreadPoolExecutor(max_workers=4)
+
+def _run_compile_sync(cmd: list, cwd: str) -> Tuple[int, str]:
+    """Run compilation synchronously in a thread (Windows-compatible)"""
+    try:
+        result = subprocess.run(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            cwd=cwd,
+            text=True,
+            timeout=300
+        )
+        return result.returncode, result.stdout
+    except subprocess.TimeoutExpired:
+        return -1, "Compilation timed out after 5 minutes. Try building again (cached cores speed up subsequent builds)."
+    except Exception as e:
+        import traceback
+        return -1, f"Subprocess error: {str(e)}\n{traceback.format_exc()}"
 
 async def compile_arduino(sketch_content: str, board_fqbn: str = "esp32:esp32:esp32") -> Tuple[bool, str, Optional[Path]]:
     """
@@ -29,16 +66,11 @@ async def compile_arduino(sketch_content: str, board_fqbn: str = "esp32:esp32:es
     ]
 
     try:
-        process = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.STDOUT,
-            cwd=str(Path.cwd())
-        )
-        stdout, _ = await process.communicate()
-        output = stdout.decode('utf-8', errors='replace')
+        # Run in thread pool to avoid Windows asyncio subprocess issues
+        loop = asyncio.get_event_loop()
+        returncode, output = await loop.run_in_executor(_executor, _run_compile_sync, cmd, str(Path.cwd()))
 
-        if process.returncode == 0:
+        if returncode == 0:
             # Find .bin file
             bin_file = build_dir / "sketch.ino.bin"
             if bin_file.exists():

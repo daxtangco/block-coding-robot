@@ -5,7 +5,7 @@ from pathlib import Path
 
 from backend.services.storage import load_settings, load_poses
 from backend.services.template_engine import fill_template
-from backend.services.builder import compile_arduino
+from backend.services.builder import compile_arduino, get_template_path
 
 router = APIRouter()
 
@@ -14,6 +14,7 @@ class BuildRequest(BaseModel):
     target_board: str = "arm"  # "arm" or "vision"
     project_name: str = "default"
     use_pca9685: bool = True  # Use PCA9685 servo driver by default
+    use_ap_mode: bool = False  # Use AP mode (WiFi access point) instead of Blynk
 
 @router.post("/build")
 async def build_firmware(request: BuildRequest):
@@ -25,15 +26,14 @@ async def build_firmware(request: BuildRequest):
     poses = load_poses(request.project_name)
 
     # Load template
-    template_path = Path("backend/templates")
     if request.target_board == "arm":
-        # Choose template based on servo driver type
-        if request.use_pca9685:
-            template_file = template_path / "arm_controller_pca9685.ino"
-        else:
-            template_file = template_path / "arm_controller.ino"
+        # Use centralized template selection logic
+        template_file = get_template_path(
+            use_pca9685=request.use_pca9685,
+            use_ap_mode=request.use_ap_mode
+        )
     elif request.target_board == "vision":
-        template_file = template_path / "vision_board.ino"
+        template_file = Path("backend/templates") / "vision_board.ino"
     else:
         raise HTTPException(400, "Invalid target_board. Must be 'arm' or 'vision'")
 
