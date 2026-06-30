@@ -5,7 +5,9 @@ from pathlib import Path
 
 from backend.services.storage import load_settings, load_poses
 from backend.services.template_engine import fill_template
-from backend.services.builder import compile_arduino, get_template_path
+from backend.services.builder import (
+    compile_arduino, compile_and_upload, list_serial_ports, get_template_path,
+)
 
 router = APIRouter()
 
@@ -16,21 +18,23 @@ class BuildRequest(BaseModel):
     use_pca9685: bool = True  # Use PCA9685 servo driver by default
     use_ap_mode: bool = False  # Use AP mode (WiFi access point) instead of Blynk
 
-@router.post("/build")
-async def build_firmware(request: BuildRequest):
-    """
-    Receives generated C++ code, fills template, compiles, returns .bin path.
-    """
-    # Load project data
+class UploadRequest(BaseModel):
+    port: str
+    generated_code: str = ""
+    target_board: str = "arm"
+    project_name: str = "default"
+    use_pca9685: bool = True
+    use_ap_mode: bool = True
+
+
+def _build_sketch(request: BuildRequest) -> str:
+    """Load project data, select template, and fill it. Shared by build/upload."""
     settings = load_settings(request.project_name)
     poses = load_poses(request.project_name)
 
-    # Load template
     if request.target_board == "arm":
-        # Use centralized template selection logic
         template_file = get_template_path(
-            use_pca9685=request.use_pca9685,
-            use_ap_mode=request.use_ap_mode
+            use_pca9685=request.use_pca9685, use_ap_mode=request.use_ap_mode
         )
     elif request.target_board == "vision":
         template_file = Path("backend/templates") / "vision_board.ino"
@@ -40,15 +44,19 @@ async def build_firmware(request: BuildRequest):
     if not template_file.exists():
         raise HTTPException(500, f"Template not found: {template_file}")
 
-    template_content = template_file.read_text()
-
-    # Fill template
-    filled_sketch = fill_template(
-        template_content,
+    return fill_template(
+        template_file.read_text(),
         settings,
         poses,
-        request.generated_code if request.generated_code else "// Manual mode only"
+        request.generated_code if request.generated_code else "// Manual mode only",
     )
+
+@router.post("/build")
+async def build_firmware(request: BuildRequest):
+    """
+    Receives generated C++ code, fills template, compiles, returns .bin path.
+    """
+    filled_sketch = _build_sketch(request)
 
     # Compile
     success, output, bin_path = await compile_arduino(filled_sketch)
@@ -64,6 +72,33 @@ async def build_firmware(request: BuildRequest):
         "firmware_size": bin_path.stat().st_size
     }
 
+
+@router.get("/ports")
+async def list_ports():
+    """List connected serial ports for USB flashing."""
+    return {"status": "success", "ports": list_serial_ports()}
+
+
+@router.post("/upload")
+async def upload_firmware(request: UploadRequest):
+    """Compile and flash the firmware directly to the board over USB."""
+    if not request.port:
+        raise HTTPException(400, "No serial port specified")
+
+    filled_sketch = _build_sketch(BuildRequest(
+        generated_code=request.generated_code,
+        target_board=request.target_board,
+        project_name=request.project_name,
+        use_pca9685=request.use_pca9685,
+        use_ap_mode=request.use_ap_mode,
+    ))
+
+    success, output = await compile_and_upload(filled_sketch, request.port)
+    if not success:
+        raise HTTPException(500, output)
+
+    return {"status": "success", "build_log": output, "port": request.port}
+
 @router.post("/build/manual")
 async def build_manual_mode(project_name: str = "default"):
     """
@@ -73,7 +108,8 @@ async def build_manual_mode(project_name: str = "default"):
         generated_code="",
         target_board="arm",
         project_name=project_name,
-        use_pca9685=True
+        use_pca9685=True,
+        use_ap_mode=True
     ))
 
 @router.get("/download/{build_id}")

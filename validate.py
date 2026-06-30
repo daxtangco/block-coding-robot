@@ -5,14 +5,20 @@ Provides detailed validation metrics and visualizations
 """
 
 import argparse
+import sys
 from pathlib import Path
 import json
 import torch
 from ultralytics import YOLO
+
+# Windows consoles default to cp1252; force UTF-8 so ✓ glyphs don't crash output.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
-from config import PREPARED_DATA_DIR, RESULTS_DIR, TARGET_CLASSES
+from config import PREPARED_DATA_DIR, RESULTS_DIR, TARGET_CLASSES, get_model_path
 
 
 class ModelValidator:
@@ -244,10 +250,11 @@ class ModelValidator:
 def main():
     """Main validation workflow"""
     parser = argparse.ArgumentParser(description="Validate LEGO Object Detection Model")
-    parser.add_argument("--model", type=str, required=True,
-                        help="Path to trained model weights (.pt file)")
-    parser.add_argument("--experiment", type=int, choices=[1, 2, 3], required=True,
-                        help="Experiment number used for training")
+    parser.add_argument("--model", type=str, default=None,
+                        help="Path to trained model weights (.pt file). "
+                             "If omitted, auto-discovers from models/ or training_output/.")
+    parser.add_argument("--experiment", type=int, choices=[1, 2, 3], default=2,
+                        help="Experiment number used for training (default: 2)")
     parser.add_argument("--split", type=str, default="test", choices=["train", "val", "test"],
                         help="Dataset split to validate on")
     args = parser.parse_args()
@@ -256,8 +263,19 @@ def main():
     print("LEGO OBJECT DETECTION - MODEL VALIDATION")
     print("="*70)
 
+    # Resolve model path (explicit flag wins, else auto-discover)
+    model_path = args.model
+    if model_path is None:
+        found = get_model_path()
+        if found is None:
+            print("\n✗ No trained model found.")
+            print("  Place your trained best.pt at: models/lego_detector.pt")
+            sys.exit(1)
+        model_path = str(found)
+        print(f"Auto-discovered model: {model_path}")
+
     # Initialize validator
-    validator = ModelValidator(args.model, args.experiment)
+    validator = ModelValidator(model_path, args.experiment)
 
     # Run validation
     metrics, results = validator.run_validation(args.split)

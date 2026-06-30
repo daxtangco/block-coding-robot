@@ -292,14 +292,52 @@ body {
 .blockly-panel {
     flex: 1;
     position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.program-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.program-toolbar select {
+    flex: 1;
+    min-width: 0;
+    padding: 0.4rem 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.4rem;
+    background: var(--bg-color);
+    color: var(--text-primary);
 }
 
 #blocklyDiv {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+    flex: 1;
+    position: relative;
+}
+
+.run-log {
+    max-height: 140px;
+    overflow-y: auto;
+    padding: 0.5rem 0.75rem;
+    font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    background: #0f172a;
+    color: #cbd5e1;
+    border-top: 2px solid var(--border-color);
+}
+
+.run-log:empty {
+    display: none;
+}
+
+.run-log-line.error {
+    color: #fca5a5;
 }
 
 .code-panel {
@@ -382,6 +420,22 @@ body {
     text-align: center;
     font-weight: 600;
     color: var(--primary-color);
+}
+
+.gripper-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex: 1;
+}
+
+.gripper-buttons button {
+    flex: 1;
+}
+
+.gripper-buttons button.active {
+    background: var(--success-color, #10b981);
+    color: #fff;
+    border-color: var(--success-color, #10b981);
 }
 
 .pose-actions {
@@ -1103,4 +1157,135 @@ input:checked + .slider:before {
 #advice-content ol li {
     margin-bottom: 0.5rem;
     color: var(--text-primary);
+}
+
+/* Vision / live detection panel */
+.vision-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin: 1rem 0;
+}
+.vision-conf {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-primary);
+}
+.vision-stage {
+    width: 100%;
+    max-width: 640px;
+    background: #000;
+    border-radius: 8px;
+    overflow: hidden;
+}
+.vision-stage canvas {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+.vision-results {
+    margin-top: 1rem;
+}
+.vision-results ul {
+    list-style: none;
+    padding: 0;
+}
+.vision-results li {
+    padding: 0.35rem 0.5rem;
+    border-bottom: 1px solid var(--border-color, #ddd);
+    color: var(--text-primary);
+}
+
+/* Teach Object panel */
+.teach-controls,
+.teach-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin: 1rem 0;
+}
+.teach-capture-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 1rem 0;
+    flex-wrap: wrap;
+}
+.teach-capture-row input[type="text"] {
+    flex: 1;
+    min-width: 200px;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color, #ccc);
+    border-radius: 6px;
+}
+.teach-classes {
+    margin-top: 1rem;
+}
+.teach-classes ul {
+    list-style: none;
+    padding: 0;
+}
+.teach-classes li {
+    padding: 0.35rem 0.5rem;
+    border-bottom: 1px solid var(--border-color, #ddd);
+    color: var(--text-primary);
+    display: flex;
+    justify-content: space-between;
+}
+.teach-count {
+    color: var(--text-secondary, #888);
+    font-size: 0.9em;
+}
+.teach-result {
+    margin-top: 1rem;
+}
+
+/* USB flash port picker */
+.flash-port-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.75rem 0;
+    flex-wrap: wrap;
+}
+.flash-port-row select {
+    flex: 1;
+    min-width: 160px;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid var(--border-color, #ccc);
+    border-radius: 6px;
+}
+.flash-upload-log {
+    margin-top: 0.75rem;
+    font-size: 0.9rem;
+    white-space: pre-wrap;
+}
+
+/* Teach Poses live-control bar */
+.pose-live-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin: 0.75rem 0 1rem;
+}
+.pose-conn-status {
+    font-size: 0.9rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+}
+.pose-conn-status.disconnected {
+    color: #991b1b;
+    background: #fee2e2;
+}
+.pose-conn-status.connecting {
+    color: #92400e;
+    background: #fef3c7;
+}
+.pose-conn-status.connected {
+    color: #166534;
+    background: #dcfce7;
 }

@@ -92,6 +92,9 @@ export async function initBlockly() {
     // Store workspace globally
     window.blocklyWorkspace = workspace;
 
+    // Expose so pose-teaching.syncPoseGlobals() can refresh dropdowns
+    window.updatePoseDropdowns = updatePoseDropdowns;
+
     // Update code preview on changes
     workspace.addChangeListener(() => {
         updateCodePreview();

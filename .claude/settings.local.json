@@ -17,7 +17,15 @@
       "Bash(cat)",
       "Bash(python /tmp/test_build.py)",
       "Bash(python -c ' *)",
-      "Bash(git commit -m 'fix: improve error handling in arduino builder *)"
+      "Bash(git commit -m 'fix: improve error handling in arduino builder *)",
+      "Bash(taskkill //F //IM python.exe)",
+      "Bash(python -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000)",
+      "Bash(curl http://localhost:8000/health)",
+      "Bash(taskkill //F //PID 27340)",
+      "Bash(taskkill //F //PID 18944)",
+      "Bash(tasklist)",
+      "Bash(taskkill //F //PID 16364 //PID 10284 //PID 1252 //PID 10300)",
+      "Bash(arduino-cli compile *)"
     ]
   }
 }

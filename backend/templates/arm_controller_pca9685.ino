@@ -92,10 +92,10 @@ void setup() {
 
   // Set all servos to initial positions
   setServoAngle(SERVO_BASE, 90);
-  setServoAngle(SERVO_SHOULDER, 90);
-  setServoAngle(SERVO_ELBOW, 90);
-  setServoAngle(SERVO_WRIST, 90);
-  setServoAngle(SERVO_GRIPPER, GRIPPER_OPEN);
+  setServoAngle(SERVO_SHOULDER, 60);
+  setServoAngle(SERVO_ELBOW, 70);
+  setServoAngle(SERVO_WRIST, 60);
+  setServoAngle(SERVO_GRIPPER, 90);
 
   Serial.println("PCA9685 initialized");
 
@@ -142,6 +142,17 @@ bool cameraSees(const String& className, int minConfidence) {
 }
 
 // Blynk virtual pin handlers
+
+BLYNK_CONNECTED() {
+  // Sync slider values with actual servo positions on connect
+  Blynk.virtualWrite(V0, 0);    // Base
+  Blynk.virtualWrite(V1, 60);   // Shoulder
+  Blynk.virtualWrite(V2, 70);   // Elbow
+  Blynk.virtualWrite(V3, 60);   // Wrist
+  Blynk.virtualWrite(V4, 90);   // Gripper
+  Blynk.virtualWrite(V5, 0);
+  Serial.println("Blynk connected - synced slider values");
+}
 
 BLYNK_WRITE(V0) {  // Base angle (manual mode only)
   if (!autoMode) {
@@ -191,6 +202,22 @@ BLYNK_WRITE(V4) {  // Gripper angle (manual mode only)
 BLYNK_WRITE(V5) {  // Auto/Manual mode toggle
   autoMode = (param.asInt() == 1);
   Serial.println(autoMode ? "Auto mode ON" : "Manual mode ON");
+}
+
+BLYNK_WRITE(V6) {  // Reset all servos to default
+  if (param.asInt() == 1) {
+    setServoAngle(SERVO_BASE, 0);
+    setServoAngle(SERVO_SHOULDER, 60);
+    setServoAngle(SERVO_ELBOW, 70);
+    setServoAngle(SERVO_WRIST, 60);
+    setServoAngle(SERVO_GRIPPER, 90);
+    Serial.println("Reset all servos to default");
+    Blynk.virtualWrite(V0, 0);
+    Blynk.virtualWrite(V1, 60);
+    Blynk.virtualWrite(V2, 70);
+    Blynk.virtualWrite(V3, 60);
+    Blynk.virtualWrite(V4, 90);
+  }
 }
 
 BLYNK_WRITE(V10) {  // Detection class from ESP32-CAM

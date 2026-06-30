@@ -35,9 +35,11 @@ char pass[] = "{{WIFI_PASSWORD}}";
 
 // Mock inference (replace with TFLite Micro in week 1)
 String mockInference() {
-  // Placeholder: returns random class for now
-  const char* classes[] = {"red_small", "blue_small", "red_large", "blue_large", "none"};
-  return classes[random(0, 5)];
+  // Placeholder: returns a random class for now. Classes match the trained
+  // YOLOv8n model (see config.py TARGET_CLASSES).
+  const char* classes[] = {"brick_1x6", "brick_2x2", "brick_2x4",
+                           "plate_1x2", "plate_2x2", "plate_2x4", "none"};
+  return classes[random(0, 7)];
 }
 
 int mockConfidence() {

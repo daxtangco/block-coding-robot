@@ -7,27 +7,25 @@ Maps detected LEGO bricks to sorting bins using fixed positions
 from typing import Dict, Tuple, List
 from dataclasses import dataclass
 
-# LEGO brick classes (from training model)
-LEGO_CLASSES = ["1x1", "1x2", "2x2", "2x4", "2x6", "2x8", "2x10", "2x12"]
+# LEGO classes (from training model - see config.py TARGET_CLASSES)
+LEGO_CLASSES = ["brick_1x6", "brick_2x2", "brick_2x4",
+                "plate_1x2", "plate_2x2", "plate_2x4"]
 
 # Bin positions (x, y, z) in millimeters relative to arm base
 # These are fixed positions that you calibrate once
 BIN_POSITIONS = {
-    "small_bin": (150, 200, 50),    # For 1x1, 1x2
-    "medium_bin": (250, 200, 50),   # For 2x2, 2x4
-    "large_bin": (350, 200, 50),    # For 2x6, 2x8, 2x10, 2x12
+    "brick_bin": (150, 200, 50),    # For all bricks
+    "plate_bin": (350, 200, 50),    # For all plates
 }
 
 # Sorting rules: map each LEGO class to a bin
 SORTING_RULES = {
-    "1x1": "small_bin",
-    "1x2": "small_bin",
-    "2x2": "medium_bin",
-    "2x4": "medium_bin",
-    "2x6": "large_bin",
-    "2x8": "large_bin",
-    "2x10": "large_bin",
-    "2x12": "large_bin",
+    "brick_1x6": "brick_bin",
+    "brick_2x2": "brick_bin",
+    "brick_2x4": "brick_bin",
+    "plate_1x2": "plate_bin",
+    "plate_2x2": "plate_bin",
+    "plate_2x4": "plate_bin",
 }
 
 
@@ -66,16 +64,16 @@ class LEGOSorter:
         Get target bin name and position for a LEGO brick class.
 
         Args:
-            lego_class: LEGO brick class name (e.g., "2x4")
+            lego_class: LEGO class name (e.g., "brick_2x4")
 
         Returns:
             Tuple of (bin_name, bin_position)
 
         Example:
             >>> sorter = LEGOSorter()
-            >>> bin_name, position = sorter.get_target_bin("2x4")
+            >>> bin_name, position = sorter.get_target_bin("brick_2x4")
             >>> print(bin_name, position)
-            medium_bin (250, 200, 50)
+            brick_bin (150, 200, 50)
         """
         if lego_class not in self.sorting_rules:
             raise ValueError(f"Unknown LEGO class: {lego_class}")
@@ -96,15 +94,15 @@ class LEGOSorter:
             Dictionary with sorting instructions
 
         Example:
-            >>> detection = Detection("2x4", 0.92, (100, 150, 200, 250))
+            >>> detection = Detection("brick_2x4", 0.92, (100, 150, 200, 250))
             >>> instructions = sorter.sort_detection(detection)
             >>> print(instructions)
             {
-                'brick_class': '2x4',
+                'brick_class': 'brick_2x4',
                 'confidence': 0.92,
                 'pickup_position': (150, 200),  # center of bbox
-                'target_bin': 'medium_bin',
-                'dropoff_position': (250, 200, 50)
+                'target_bin': 'brick_bin',
+                'dropoff_position': (150, 200, 50)
             }
         """
         bin_name, bin_position = self.get_target_bin(detection.class_name)
@@ -129,8 +127,8 @@ class LEGOSorter:
 
         Example:
             >>> detections = [
-            ...     Detection("1x1", 0.95, (50, 50, 100, 100)),
-            ...     Detection("2x4", 0.92, (200, 100, 300, 200)),
+            ...     Detection("brick_1x6", 0.95, (50, 50, 100, 100)),
+            ...     Detection("brick_2x4", 0.92, (200, 100, 300, 200)),
             ... ]
             >>> sequence = sorter.generate_sorting_sequence(detections)
         """
@@ -171,10 +169,10 @@ def example_usage():
 
     # Example detections from YOLOv8 model
     detections = [
-        Detection("1x1", 0.95, (50, 50, 100, 100)),
-        Detection("2x4", 0.92, (200, 100, 300, 200)),
-        Detection("2x8", 0.89, (350, 150, 500, 250)),
-        Detection("1x2", 0.87, (100, 300, 150, 350)),
+        Detection("brick_1x6", 0.95, (50, 50, 100, 100)),
+        Detection("brick_2x4", 0.92, (200, 100, 300, 200)),
+        Detection("plate_2x2", 0.89, (350, 150, 500, 250)),
+        Detection("plate_1x2", 0.87, (100, 300, 150, 350)),
     ]
 
     # Generate sorting sequence

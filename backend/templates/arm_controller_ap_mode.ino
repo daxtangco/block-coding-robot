@@ -7,10 +7,209 @@
 #include <ESPAsyncWebServer.h>
 #include <AsyncWebSocket.h>
 #include <DNSServer.h>
-#include <SPIFFS.h>
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
 #include <ArduinoJson.h>
+
+// Lets us disable the ESP32 brownout detector (see setup()). The board is USB
+// powered with its ground tied to the servo supply ground; when several servos
+// surge at once the shared ground bounces and trips this over-sensitive
+// detector, rebooting the board mid-move. The servo supply is separate, so the
+// dip is a ground-bounce artifact, not a real ESP32 undervoltage — safe to mute.
+#include "soc/soc.h"
+#include "soc/rtc_cntl_reg.h"
+
+// Embedded PWA HTML (no SPIFFS needed!)
+const char EMBEDDED_HTML[] PROGMEM = R"rawliteral(
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robot Arm</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #0a0a0a; color: #fff; padding: 20px; }
+        .container { max-width: 500px; margin: 0 auto; }
+        h1 { font-size: 24px; margin-bottom: 20px; text-align: center; }
+        .status { text-align: center; padding: 10px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; }
+        .connected { background: #10b981; }
+        .connecting { background: #f59e0b; }
+        .disconnected { background: #ef4444; }
+        .servo { background: #1a1a1a; padding: 15px; margin-bottom: 15px; border-radius: 8px; }
+        .servo label { display: block; margin-bottom: 8px; font-weight: 600; }
+        .slider-row { display: flex; align-items: center; gap: 10px; }
+        .slider-row span:first-child { min-width: 30px; font-size: 12px; color: #888; }
+        .slider-row span:last-child { min-width: 50px; font-size: 14px; text-align: right; font-weight: 600; }
+        input[type="range"] { flex: 1; height: 6px; border-radius: 3px; background: #333; outline: none; -webkit-appearance: none; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #3b82f6; cursor: pointer; }
+        input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: #3b82f6; cursor: pointer; border: none; }
+        input[type="range"]:disabled { opacity: 0.5; cursor: not-allowed; }
+        .gripper-row { display: flex; gap: 10px; }
+        .btn-grip { flex: 1; padding: 12px; border: none; border-radius: 6px; font-size: 15px; font-weight: 600; cursor: pointer; background: #3b82f6; color: #fff; }
+        .btn-grip.active { background: #10b981; }
+        .btn-grip:disabled { opacity: 0.5; cursor: not-allowed; }
+        .buttons { display: flex; gap: 10px; margin-top: 20px; }
+        button { flex: 1; padding: 15px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: transform 0.1s; }
+        button:active { transform: scale(0.95); }
+        .btn-manual { background: #3b82f6; color: #fff; }
+        .btn-auto { background: #10b981; color: #fff; }
+        .btn-reset { background: #ef4444; color: #fff; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 Robot Arm Control</h1>
+        <div id="status" class="status connecting">Connecting...</div>
+
+        <div class="servo">
+            <label>Base</label>
+            <div class="slider-row">
+                <span>0°</span>
+                <input type="range" id="s0" min="0" max="180" value="90" disabled>
+                <span id="v0">90°</span>
+            </div>
+        </div>
+
+        <div class="servo">
+            <label>Shoulder</label>
+            <div class="slider-row">
+                <span>0°</span>
+                <input type="range" id="s1" min="0" max="180" value="90" disabled>
+                <span id="v1">90°</span>
+            </div>
+        </div>
+
+        <div class="servo">
+            <label>Elbow</label>
+            <div class="slider-row">
+                <span>0°</span>
+                <input type="range" id="s2" min="0" max="180" value="90" disabled>
+                <span id="v2">90°</span>
+            </div>
+        </div>
+
+        <div class="servo">
+            <label>Wrist</label>
+            <div class="slider-row">
+                <span>0°</span>
+                <input type="range" id="s3" min="0" max="90" value="60" disabled>
+                <span id="v3">60°</span>
+            </div>
+        </div>
+
+        <div class="servo">
+            <label>Gripper</label>
+            <div class="gripper-row">
+                <button id="grip-open" class="btn-grip" disabled>Open</button>
+                <button id="grip-close" class="btn-grip" disabled>Close</button>
+            </div>
+        </div>
+
+        <div class="buttons">
+            <button id="manual" class="btn-manual">Manual</button>
+            <button id="auto" class="btn-auto">Auto</button>
+            <button id="reset" class="btn-reset">Reset</button>
+        </div>
+    </div>
+
+    <script>
+        let ws;
+        const status = document.getElementById('status');
+        // Gripper (channel 4) is open/close buttons, not a slider — only 0-3 here.
+        const sliders = [0,1,2,3].map(i => document.getElementById('s'+i));
+        const values = [0,1,2,3].map(i => document.getElementById('v'+i));
+        const gripOpen = document.getElementById('grip-open');
+        const gripClose = document.getElementById('grip-close');
+        const GRIPPER_CH = 4;
+        // Keep these in sync with the C++ GRIPPER_OPEN/GRIPPER_CLOSE constants
+        // below — the manual buttons here and closeClaw()/openClaw() in programs
+        // must command the same angles.
+        const GRIPPER_OPEN = 30;
+        const GRIPPER_CLOSE = 5;
+
+        function setEnabled(on) {
+            sliders.forEach(s => s.disabled = !on);
+            gripOpen.disabled = !on;
+            gripClose.disabled = !on;
+        }
+
+        function connect() {
+            ws = new WebSocket('ws://192.168.4.1/ws');
+            ws.onopen = () => {
+                status.textContent = 'Connected';
+                status.className = 'status connected';
+                setEnabled(true);
+            };
+            ws.onclose = () => {
+                status.textContent = 'Disconnected';
+                status.className = 'status disconnected';
+                setEnabled(false);
+                setTimeout(connect, 2000);
+            };
+            ws.onmessage = (e) => {
+                const msg = JSON.parse(e.data);
+                if(msg.type === 'state') {
+                    msg.servos.forEach((angle, i) => {
+                        if(i < 4) {
+                            sliders[i].value = angle;
+                            values[i].textContent = angle + '°';
+                        } else {
+                            // Gripper: reflect open/close from the reported angle.
+                            const open = angle >= (GRIPPER_OPEN + GRIPPER_CLOSE) / 2;
+                            gripOpen.classList.toggle('active', open);
+                            gripClose.classList.toggle('active', !open);
+                        }
+                    });
+                }
+            };
+        }
+
+        // Throttle slider output: dragging fires oninput on every pixel, which
+        // would flood the board. Send at most once per SEND_INTERVAL ms, and
+        // always send the final value on release so we don't lose the endpoint.
+        const SEND_INTERVAL = 50;
+        const lastSent = [0,0,0,0,0];
+        function sendServo(i, angle) {
+            if(ws && ws.readyState === 1) {
+                ws.send(JSON.stringify({type:'servo', channel:i, angle:angle}));
+            }
+        }
+        sliders.forEach((slider, i) => {
+            slider.oninput = () => {
+                const angle = parseInt(slider.value);
+                values[i].textContent = angle + '°';
+                const now = Date.now();
+                if(now - lastSent[i] >= SEND_INTERVAL) {
+                    lastSent[i] = now;
+                    sendServo(i, angle);
+                }
+            };
+            // Guarantee the final position is sent when the drag ends.
+            slider.onchange = () => sendServo(i, parseInt(slider.value));
+        });
+
+        gripOpen.onclick = () => sendServo(GRIPPER_CH, GRIPPER_OPEN);
+        gripClose.onclick = () => sendServo(GRIPPER_CH, GRIPPER_CLOSE);
+
+        document.getElementById('manual').onclick = () => {
+            if(ws && ws.readyState === 1) ws.send(JSON.stringify({type:'mode', auto:false}));
+        };
+
+        document.getElementById('auto').onclick = () => {
+            if(ws && ws.readyState === 1) ws.send(JSON.stringify({type:'mode', auto:true}));
+        };
+
+        document.getElementById('reset').onclick = () => {
+            if(ws && ws.readyState === 1) ws.send(JSON.stringify({type:'reset'}));
+        };
+
+        connect();
+    </script>
+</body>
+</html>
+)rawliteral";
 
 // Access Point Configuration
 const char* AP_SSID = "RobotArm-";  // Will append MAC address
@@ -35,43 +234,158 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 #define SDA_PIN 21
 #define SCL_PIN 22
 
-// Servo channel assignments
+// Logical servo indices. Everything in this firmware (angles, inversion, limits,
+// poses, the app sliders) works in terms of these 0-4 indices.
 #define SERVO_BASE     0
 #define SERVO_SHOULDER 1
 #define SERVO_ELBOW    2
 #define SERVO_WRIST    3
 #define SERVO_GRIPPER  4
 
+// Physical PCA9685 output channel each servo is wired to. Only used at the
+// pwm.setPWM() call — change this to match your wiring without touching anything
+// else. Current wiring: base=2, shoulder=6, elbow=8, wrist=10, gripper=12.
+const uint8_t PWM_CHANNEL[5] = {0, 2, 4, 6, 8};
+
 // PWM settings
 #define SERVO_FREQ 50
-#define SERVOMIN  150
-#define SERVOMAX  600
 
-// Default servo positions
-const int DEFAULT_POSITIONS[5] = {0, 60, 70, 60, 90};
+// Per-servo pulse calibration. SERVO_PULSE_MIN[s] is the pulse that puts servo s
+// at logical 0°, SERVO_PULSE_MAX[s] the pulse at its max angle. These are tuned
+// per joint with a protractor so logical angles match physical degrees — a single
+// shared min/max can't, because each servo's horn seats slightly differently
+// (e.g. the inverted shoulder read ~120° physical at logical 90° before tuning).
+// Order: base, shoulder, elbow, wrist, gripper.
+const int SERVO_PULSE_MIN[5] = {100, 100, 100, 100, 100};
+const int SERVO_PULSE_MAX[5] = {500, 500, 500, 500, 500};
 
-// Operating mode
-bool autoMode = false;
+// Per-channel travel range. Base is capped at 180° (the rear 180° points away
+// from the workspace and isn't needed); wrist is limited to 0-90°; the gripper
+// is capped at 90° — its geared parallel-jaw linkage hits a hard mechanical stop
+// past that, and driving into the stop stalls the servo at locked-rotor current,
+// which sags the shared rail and browns out the other servos (notably the
+// shoulder). Capping here means no pose or slider can ever command the jam.
+const int SERVO_MAX_ANGLE[5] = {180, 180, 180, 90, 90};
 
-// Current servo positions
-int currentPos[5] = {0, 60, 70, 60, 90};
+// Channels whose direction is physically reversed (shoulder and wrist are
+// mounted so they travel opposite the commanded angle).
+const bool SERVO_INVERTED[5] = {false, true, false, true, false};
+
+// Gripper open/close angles. The jaws are a geared parallel linkage with a
+// narrow usable arc, so the gripper is open/close only — not a free 0-90° joint.
+// OPEN=90 is the jaws-fully-open mechanical limit.
+//
+// CLOSE is NOT 0 (jaws fully shut). When gripping an object the jaws hit it
+// before reaching 0, so commanding 0 leaves the servo stalled against the object
+// at locked-rotor current the whole time it holds — that sustained draw starves
+// the shoulder so it can't lift. CLOSE is instead tuned so the jaws just clamp
+// the object firmly with the servo AT its target (not stalled), keeping holding
+// current low. Tune to your object: raise it (toward 90) if the shoulder still
+// can't lift (servo still grinding), lower it if the object slips.
+const int GRIPPER_CLOSE = 5;
+const int GRIPPER_OPEN  = 30;
+
+// Default ("home") servo positions: base 90 (physical center), shoulder 90,
+// elbow 90, wrist 60, gripper 0. Base=90 is straight ahead; <90 rotates
+// counterclockwise, >90 clockwise.
+const int DEFAULT_POSITIONS[5] = {90, 90, 90, 60, 0};
+
+// Operating mode. volatile because it's written from the async WebSocket task
+// (Manual/Auto button) and read in loop() — pressing Manual mid-program must be
+// visible to the running program so it can stop.
+volatile bool autoMode = false;
+
+// Current servo positions (logical angles, pre-inversion) — where the arm IS.
+int currentPos[5] = {90, 90, 90, 60, 0};
+
+// Target positions — where the arm is being TOLD to go. Servos ease toward these
+// a few degrees per tick (see updateServos) instead of snapping, so a fast
+// slider drag doesn't jolt the motors.
+int targetPos[5] = {90, 90, 90, 60, 0};
+
+// Slew tuning: max degrees moved per update tick, and ms between ticks.
+// Smaller step / longer interval = smoother but slower.
+const int SLEW_STEP = 1;
+const unsigned long SLEW_INTERVAL = 20;
+unsigned long lastSlewTime = 0;
+
+// Set true when a manual `servo` command arrives, cleared once the slewer reports
+// all joints at target — at which point we send a {"type":"done"} ACK. The browser
+// block-runner awaits this so each move finishes before the next program step.
+bool movePending = false;
+
+// Auto moves use the SAME cadence as manual slewing. Manual (a slider drag) is
+// visibly smooth on this hardware, so it's the proven-good reference. Driving the
+// servo in tiny 1° steps spaced far apart (an earlier attempt) lands inside the
+// servo's deadband: each step is too small to act on, so it stalls then lurches
+// to catch up — that's the cogging/jerk. Matching the manual 2°/15ms cadence
+// keeps motion continuous and out of the deadband, exactly like a hand drag.
+const int AUTO_SLEW_STEP = SLEW_STEP;
+const unsigned long AUTO_SLEW_INTERVAL = SLEW_INTERVAL;
 
 // Pose definitions (generated from IDE)
 {{POSE_DEFINITIONS}}
 
-// Helper function: Convert angle to PWM pulse
-int angleToPulse(int angle) {
-  angle = constrain(angle, 0, 180);
-  return map(angle, 0, 180, SERVOMIN, SERVOMAX);
+// Helper function: Convert a logical angle on a servo (index 0-4) to a PWM pulse.
+// Each servo has its own travel range (SERVO_MAX_ANGLE) and may be inverted.
+int angleToPulse(uint8_t servo, int angle) {
+  if (servo >= 5) return map(constrain(angle, 0, 180), 0, 180, 100, 500);
+  int maxAngle = SERVO_MAX_ANGLE[servo];
+  angle = constrain(angle, 0, maxAngle);
+  if (SERVO_INVERTED[servo]) {
+    angle = maxAngle - angle;  // flip direction within this servo's range
+  }
+  return map(angle, 0, maxAngle, SERVO_PULSE_MIN[servo], SERVO_PULSE_MAX[servo]);
 }
 
-// Helper function: Set servo position
-void setServoAngle(uint8_t channel, int angle) {
-  int pulse = angleToPulse(angle);
-  pwm.setPWM(channel, 0, pulse);
+// Immediately drive a servo to a logical angle. Used internally by the slewer
+// and at boot; callers that want smooth motion should use setServoAngle instead.
+// Translates the logical servo index to its physical PCA9685 channel here.
+void writeServo(uint8_t servo, int angle) {
+  if (servo >= 5) return;
+  int pulse = angleToPulse(servo, angle);
+  pwm.setPWM(PWM_CHANNEL[servo], 0, pulse);
+  currentPos[servo] = angle;
+}
 
-  if (channel < 5) {
-    currentPos[channel] = angle;
+// Request a servo to move to a logical angle. This only sets the target; the
+// slewer eases the servo there gradually so motion stays smooth.
+void setServoAngle(uint8_t servo, int angle) {
+  if (servo < 5) {
+    targetPos[servo] = constrain(angle, 0, SERVO_MAX_ANGLE[servo]);
+  }
+}
+
+// Step servos toward their targets. Returns true once all servos have reached
+// their targets. Call frequently from loop().
+//
+// Only ONE joint is moved per tick (the lowest-index joint not yet at target).
+// This staggers multi-joint moves — a pose change or Reset eases joints one at a
+// time instead of starting all five at once. Starting several servos together
+// produces a current surge that bounces the shared ground and was rebooting the
+// board (confirmed via serial). Serializing the motion removes that surge.
+// Single-joint moves (a normal slider drag) are unaffected.
+bool updateServos(int maxStep = SLEW_STEP) {
+  for (int i = 0; i < 5; i++) {
+    if (currentPos[i] == targetPos[i]) continue;
+    int diff = targetPos[i] - currentPos[i];
+    int step = constrain(diff, -maxStep, maxStep);
+    writeServo(i, currentPos[i] + step);
+    return false;  // moved one joint this tick; let it progress before the next
+  }
+  return true;  // every joint is at its target
+}
+
+// Block until all servos reach their targets (used by auto-mode helpers that
+// must finish a move before the next program step). Timeout is a safety net:
+// joints now move one at a time (see updateServos), so a worst-case 5-joint
+// pose change of ~90° each takes ~5 × 0.7s ≈ 3.4s. 6s leaves ample headroom.
+void slewBlocking(unsigned long timeoutMs = 11000) {
+  unsigned long start = millis();
+  // Bail out if the user leaves auto mode (Manual button) — otherwise a move in
+  // progress would finish on its own and ignore the mode switch.
+  while (autoMode && !updateServos(AUTO_SLEW_STEP) && (millis() - start) < timeoutMs) {
+    delay(AUTO_SLEW_INTERVAL);
   }
 }
 
@@ -88,6 +402,12 @@ void broadcastState() {
   String json;
   serializeJson(doc, json);
   ws.textAll(json);
+}
+
+// Tell clients the most recent manual move has fully settled (all joints at
+// target). The browser block-runner awaits this between program steps.
+void broadcastDone() {
+  ws.textAll("{\"type\":\"done\"}");
 }
 
 // Handle WebSocket message
@@ -112,10 +432,13 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
       int channel = doc["channel"];
       int angle = doc["angle"];
 
-      if (channel >= 0 && channel <= 4 && angle >= 0 && angle <= 180) {
+      if (channel >= 0 && channel <= 4 && angle >= 0 && angle <= SERVO_MAX_ANGLE[channel]) {
         setServoAngle(channel, angle);
+        movePending = true;  // arm a {"type":"done"} ACK once this settles
         Serial.printf("Servo %d -> %d°\n", channel, angle);
-        broadcastState();
+        // Don't broadcast here: currentPos lags the target while slewing, so
+        // echoing it back would yank the slider backward mid-drag. The app
+        // already shows the value it sent.
       }
     }
     else if (strcmp(type, "mode") == 0) {
@@ -158,6 +481,11 @@ void onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsE
 }
 
 void setup() {
+  // Mute the brownout detector first thing, before anything draws current.
+  // Shared-ground bounce from servo surges was tripping it and rebooting the
+  // board mid-move (confirmed via serial: POWERON_RESET during multi-servo moves).
+  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
+
   Serial.begin(115200);
   delay(1000);
   Serial.println("\n\nStarting Robot Arm Controller (AP Mode)...");
@@ -179,18 +507,14 @@ void setup() {
   pwm.setPWMFreq(SERVO_FREQ);
   delay(10);
 
-  // Set servos to default positions
+  // Set servos to default positions immediately (no slew at boot).
   for (int i = 0; i < 5; i++) {
-    setServoAngle(i, DEFAULT_POSITIONS[i]);
+    targetPos[i] = DEFAULT_POSITIONS[i];
+    writeServo(i, DEFAULT_POSITIONS[i]);
   }
   Serial.println("PCA9685 initialized");
 
-  // Initialize SPIFFS
-  if (!SPIFFS.begin(true)) {
-    Serial.println("SPIFFS Mount Failed");
-    return;
-  }
-  Serial.println("SPIFFS mounted");
+  // No SPIFFS needed - HTML is embedded!
 
   // Configure Access Point
   WiFi.mode(WIFI_AP);
@@ -208,12 +532,14 @@ void setup() {
   ws.onEvent(onWebSocketEvent);
   server.addHandler(&ws);
 
-  // Serve PWA files from SPIFFS
-  server.serveStatic("/", SPIFFS, "/").setDefaultFile("index.html");
+  // Serve embedded HTML
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send_P(200, "text/html", EMBEDDED_HTML);
+  });
 
-  // Captive portal redirect
+  // Captive portal redirect (all paths serve same HTML)
   server.onNotFound([](AsyncWebServerRequest *request){
-    request->redirect("/");
+    request->send_P(200, "text/html", EMBEDDED_HTML);
   });
 
   // Start web server
@@ -228,28 +554,45 @@ void loop() {
 
   if (autoMode) {
     runStudentProgram();
-    delay(100);
+    autoMode = false;   // program finished — stop calling it again
+    broadcastState();   // update the app so the Auto button reflects idle state
+  } else {
+    // Manual mode: ease servos toward their slider targets a step at a time.
+    if (millis() - lastSlewTime >= SLEW_INTERVAL) {
+      lastSlewTime = millis();
+      bool settled = updateServos();
+      // ACK the browser block-runner once the move it requested has fully
+      // settled, so it can advance to the next program step.
+      if (movePending && settled) {
+        movePending = false;
+        broadcastDone();
+      }
+    }
   }
 
-  delay(10);
+  delay(2);
 }
 
-// Helper functions for generated code
+// Helper functions for generated code. These slew-block so each move completes
+// smoothly before the next program step runs.
 void moveArmToPose(const int pose[5]) {
   for (int i = 0; i < 5; i++) {
     setServoAngle(i, pose[i]);
   }
-  delay(500);
+  slewBlocking();
+  delay(300);
 }
 
 void openClaw() {
-  setServoAngle(SERVO_GRIPPER, 30);
-  delay(300);
+  setServoAngle(SERVO_GRIPPER, GRIPPER_OPEN);
+  slewBlocking();
+  delay(200);
 }
 
 void closeClaw() {
-  setServoAngle(SERVO_GRIPPER, 90);
-  delay(300);
+  setServoAngle(SERVO_GRIPPER, GRIPPER_CLOSE);
+  slewBlocking();
+  delay(200);
 }
 
 bool cameraSees(const String& className, int minConfidence) {

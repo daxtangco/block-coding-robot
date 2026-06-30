@@ -35,12 +35,26 @@ def load_poses(project_name: str = "default") -> Dict[str, list]:
     poses_path = get_project_dir(project_name) / "poses.json"
     if poses_path.exists():
         return json.loads(poses_path.read_text())
-    # Return default poses
+    # Return default poses. HOME matches the firmware default:
+    # base 180, shoulder 90, elbow 90, wrist 90, gripper 0.
     return {
-        "HOME": [90, 90, 90, 90, 30],
+        "HOME": [180, 90, 90, 90, 0],
     }
 
 def save_poses(poses: Dict[str, list], project_name: str = "default"):
     """Save poses to JSON file"""
     poses_path = get_project_dir(project_name) / "poses.json"
     poses_path.write_text(json.dumps(poses, indent=2))
+
+def load_programs(project_name: str = "default") -> Dict[str, Any]:
+    """Load saved block programs. Each value is a Blockly workspace
+    serialization (the blocks themselves, not the generated C++)."""
+    programs_path = get_project_dir(project_name) / "programs.json"
+    if programs_path.exists():
+        return json.loads(programs_path.read_text())
+    return {}
+
+def save_programs(programs: Dict[str, Any], project_name: str = "default"):
+    """Save block programs to JSON file"""
+    programs_path = get_project_dir(project_name) / "programs.json"
+    programs_path.write_text(json.dumps(programs, indent=2))

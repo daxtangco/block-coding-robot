@@ -4,7 +4,15 @@ Blockly.Blocks['move_to_pose'] = {
     init: function() {
         this.appendDummyInput()
             .appendField("move arm to pose")
-            .appendField(new Blockly.FieldDropdown([["HOME", "HOME"]]), "POSE");
+            .appendField(new Blockly.FieldDropdown(function() {
+                // Read live pose list so blocks dragged from toolbox
+                // always reflect what's currently saved.
+                if (typeof window.getPoseOptions === 'function') {
+                    const opts = window.getPoseOptions();
+                    if (opts.length > 0) return opts;
+                }
+                return [['HOME', 'HOME']];
+            }), "POSE");
         this.setPreviousStatement(true, null);
         this.setNextStatement(true, null);
         this.setColour('#5C81A6');
