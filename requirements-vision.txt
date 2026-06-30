@@ -1,0 +1,6 @@
+# Extra packages for the camera / object-detection features.
+# The basic IDE runs with just requirements.txt. Install these too if you
+# want the Vision tab and the Train Model tab to work.
+ultralytics==8.4.47   # YOLOv8 object detection + training
+opencv-python==4.13.0.92  # reads the camera image so the model can look at it
+pyyaml==6.0.3        # reads the data.yaml file inside a training dataset
