@@ -54,3 +54,11 @@ yolov8m.pt
 # OS
 .DS_Store
 Thumbs.db
+
+# Agent / tooling state (oh-my-claudecode scratch data)
+.omc/
+**/.omc/
+
+# Training / inference outputs
+runs/
+*.onnx.data
