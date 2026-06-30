@@ -57,6 +57,39 @@ export async function deletePose(name, projectName = 'default') {
     return data.poses;
 }
 
+export async function fetchPrograms(projectName = 'default') {
+    const response = await fetch(`${API_BASE}/programs?project_name=${projectName}`);
+    const data = await response.json();
+    if (data.status === 'success') {
+        return data.programs;
+    }
+    throw new Error('Failed to load programs');
+}
+
+export async function saveProgram(name, workspace, projectName = 'default') {
+    const response = await fetch(`${API_BASE}/programs?project_name=${projectName}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, workspace })
+    });
+    const data = await response.json();
+    if (data.status !== 'success') {
+        throw new Error(data.message || 'Failed to save program');
+    }
+    return data.programs;
+}
+
+export async function deleteProgram(name, projectName = 'default') {
+    const response = await fetch(`${API_BASE}/programs/${name}?project_name=${projectName}`, {
+        method: 'DELETE'
+    });
+    const data = await response.json();
+    if (data.status !== 'success') {
+        throw new Error(data.message || 'Failed to delete program');
+    }
+    return data.programs;
+}
+
 export async function buildFirmware(generatedCode, targetBoard = 'arm', projectName = 'default') {
     const response = await fetch(`${API_BASE}/build`, {
         method: 'POST',
@@ -65,7 +98,8 @@ export async function buildFirmware(generatedCode, targetBoard = 'arm', projectN
             generated_code: generatedCode,
             target_board: targetBoard,
             project_name: projectName,
-            use_pca9685: true
+            use_pca9685: true,
+            use_ap_mode: true
         })
     });
 
@@ -75,6 +109,93 @@ export async function buildFirmware(generatedCode, targetBoard = 'arm', projectN
     }
 
     return await response.json();
+}
+
+export async function fetchDetectStatus() {
+    const response = await fetch(`${API_BASE}/detect/status`);
+    const data = await response.json();
+    return data.model_available === true;
+}
+
+export async function detectImage(blob, conf = 0.5) {
+    const formData = new FormData();
+    formData.append('image', blob, 'frame.jpg');
+    const response = await fetch(`${API_BASE}/detect?conf=${conf}`, {
+        method: 'POST',
+        body: formData
+    });
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.detail || 'Detection failed');
+    }
+    return await response.json();
+}
+
+// ── Custom-dataset training (Train Model tab) ───────────────────────────────
+
+export async function uploadDataset(file, projectName = 'default') {
+    const formData = new FormData();
+    formData.append('dataset', file, file.name || 'dataset.zip');
+    formData.append('project_name', projectName);
+    const response = await fetch(`${API_BASE}/train/upload`, { method: 'POST', body: formData });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data.detail || 'Upload failed');
+    }
+    return data;  // { classes, num_classes, num_images, data_yaml }
+}
+
+export async function startTraining(projectName = 'default', epochs = 20, imgsz = 640) {
+    const formData = new FormData();
+    formData.append('project_name', projectName);
+    formData.append('epochs', epochs);
+    formData.append('imgsz', imgsz);
+    const response = await fetch(`${API_BASE}/train/start`, { method: 'POST', body: formData });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data.detail || 'Could not start training');
+    }
+    return data;
+}
+
+export async function fetchTrainStatus() {
+    const response = await fetch(`${API_BASE}/train/status`);
+    return await response.json();  // { state, epoch, total_epochs, message, classes }
+}
+
+export async function fetchModelClasses(projectName = 'default') {
+    const response = await fetch(`${API_BASE}/train/classes?project_name=${projectName}`);
+    const data = await response.json();
+    return data.classes || [];
+}
+
+export async function fetchSerialPorts() {
+    const response = await fetch(`${API_BASE}/ports`);
+    const data = await response.json();
+    if (data.status !== 'success') {
+        throw new Error('Failed to list serial ports');
+    }
+    return data.ports;
+}
+
+export async function uploadFirmware({ port, generatedCode = '', useApMode = true, projectName = 'default' }) {
+    const response = await fetch(`${API_BASE}/upload`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            port,
+            generated_code: generatedCode,
+            target_board: 'arm',
+            project_name: projectName,
+            use_pca9685: true,
+            use_ap_mode: useApMode,
+        }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data.detail || 'Upload failed');
+    }
+    return data;
 }
 
 export async function buildManualMode(projectName = 'default') {

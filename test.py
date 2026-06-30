@@ -5,12 +5,18 @@ Test trained models on individual images or batches
 """
 
 import argparse
+import sys
 from pathlib import Path
 import cv2
+
+# Windows consoles default to cp1252; force UTF-8 so ✓ glyphs don't crash output.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
 import torch
 from ultralytics import YOLO
 import matplotlib.pyplot as plt
-from config import TARGET_CLASSES, RESULTS_DIR
+from config import TARGET_CLASSES, RESULTS_DIR, get_model_path
 
 
 class LEGODetector:
@@ -219,8 +225,9 @@ class LEGODetector:
 def main():
     """Main testing workflow"""
     parser = argparse.ArgumentParser(description="Test LEGO Object Detection Model")
-    parser.add_argument("--model", type=str, required=True,
-                        help="Path to trained model weights (.pt file)")
+    parser.add_argument("--model", type=str, default=None,
+                        help="Path to trained model weights (.pt file). "
+                             "If omitted, auto-discovers from models/ or training_output/.")
     parser.add_argument("--image", type=str,
                         help="Path to single image for inference")
     parser.add_argument("--batch", type=str,
@@ -240,8 +247,20 @@ def main():
     print("LEGO OBJECT DETECTION - TESTING/INFERENCE")
     print("="*70)
 
+    # Resolve model path (explicit flag wins, else auto-discover)
+    model_path = args.model
+    if model_path is None:
+        found = get_model_path()
+        if found is None:
+            print("\n✗ No trained model found.")
+            print("  Place your trained best.pt at: models/lego_detector.pt")
+            print("  (e.g. copy it from Google Drive / Colab output)")
+            sys.exit(1)
+        model_path = str(found)
+        print(f"Auto-discovered model: {model_path}")
+
     # Initialize detector
-    detector = LEGODetector(args.model)
+    detector = LEGODetector(model_path)
 
     # Single image inference
     if args.image:

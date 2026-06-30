@@ -12,6 +12,11 @@ import sys
 from pathlib import Path
 import torch
 from ultralytics import YOLO
+
+# Windows consoles default to cp1252; force UTF-8 so ✓ glyphs don't crash output.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
 import yaml
 from datetime import datetime
 

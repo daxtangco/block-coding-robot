@@ -15,6 +15,9 @@ ROOT_DIR = Path(__file__).parent.absolute()
 
 # Dataset paths
 DATASET_DIR = ROOT_DIR / "datasets"
+# Synthetic images are named image_N.jpg and live alongside the real-world
+# JPGs inside datasets/images. Their labels (YOLO_ready_txt_labels/image_N.txt)
+# are single-class (all id 0), so they cannot supply per-size classes.
 SYNTHETIC_DATASET = DATASET_DIR / "images"  # synthetic-lego-brick-dataset
 SYNTHETIC_LABELS = DATASET_DIR / "YOLO_ready_txt_labels"
 REAL_WORLD_DATASET = DATASET_DIR / "annotations"  # spiled-lego-bricks (XML format)
@@ -32,19 +35,56 @@ LOGS_DIR = OUTPUT_DIR / "logs"
 for directory in [OUTPUT_DIR, PREPARED_DATA_DIR, MODELS_DIR, RESULTS_DIR, LOGS_DIR]:
     directory.mkdir(parents=True, exist_ok=True)
 
+# Canonical location for the deployed detection model. Drop the trained
+# best.pt here (e.g. copied from Colab/Drive) and inference scripts find it
+# automatically. See get_model_path() below for the discovery order.
+DEPLOY_MODEL_DIR = ROOT_DIR / "models"
+DEPLOY_MODEL_DIR.mkdir(parents=True, exist_ok=True)
+MODEL_PATH = DEPLOY_MODEL_DIR / "lego_detector.pt"
+
+
+def get_model_path():
+    """Locate a usable trained model, in priority order:
+    1. models/lego_detector.pt (canonical deploy location)
+    2. The newest stage2_finetuned/best.pt under training_output/models
+    3. The newest stage1_synthetic/best.pt under training_output/models
+    Returns a Path, or None if nothing is found.
+    """
+    if MODEL_PATH.exists():
+        return MODEL_PATH
+
+    candidates = sorted(
+        MODELS_DIR.glob("*/stage2_finetuned/weights/best.pt"),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
+    if candidates:
+        return candidates[0]
+
+    candidates = sorted(
+        MODELS_DIR.glob("*/stage1_synthetic/weights/best.pt"),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
+    if candidates:
+        return candidates[0]
+
+    return None
+
 # ============================================================================
 # TARGET CLASSES (from PRD - only these 8 classes)
 # ============================================================================
 
+# These are the classes the real-world dataset (spiled-lego-bricks XML) actually
+# labels, and the classes the deployed model was trained on. Order is alphabetical
+# to match the class IDs baked into the trained best.pt.
 TARGET_CLASSES = [
-    "1x1",
-    "1x2",
-    "2x2",
-    "2x4",
-    "2x6",
-    "2x8",
-    "2x10",
-    "2x12"
+    "brick_1x6",
+    "brick_2x2",
+    "brick_2x4",
+    "plate_1x2",
+    "plate_2x2",
+    "plate_2x4"
 ]
 
 # Class ID mapping
@@ -56,46 +96,24 @@ ID_TO_CLASS = {idx: class_name for class_name, idx in CLASS_TO_ID.items()}
 # ============================================================================
 
 LABEL_MAPPING = {
-    # Brick variations
-    "brick 1x1": "1x1",
-    "brick_1x1": "1x1",
-    "3005 brick 1x1": "1x1",
-    "3005": "1x1",
+    # Real-world XML names map to themselves; aliases normalize spacing variants.
+    "brick_1x6": "brick_1x6",
+    "brick 1x6": "brick_1x6",
 
-    "brick 1x2": "1x2",
-    "brick_1x2": "1x2",
-    "3004 brick 1x2": "1x2",
-    "3004": "1x2",
+    "brick_2x2": "brick_2x2",
+    "brick 2x2": "brick_2x2",
 
-    "brick 2x2": "2x2",
-    "brick_2x2": "2x2",
-    "3003 brick 2x2": "2x2",
-    "3003": "2x2",
+    "brick_2x4": "brick_2x4",
+    "brick 2x4": "brick_2x4",
 
-    "brick 2x4": "2x4",
-    "brick_2x4": "2x4",
-    "3001 brick 2x4": "2x4",
-    "3001": "2x4",
+    "plate_1x2": "plate_1x2",
+    "plate 1x2": "plate_1x2",
 
-    "brick 2x6": "2x6",
-    "brick_2x6": "2x6",
-    "2456 brick 2x6": "2x6",
-    "2456": "2x6",
+    "plate_2x2": "plate_2x2",
+    "plate 2x2": "plate_2x2",
 
-    "brick 2x8": "2x8",
-    "brick_2x8": "2x8",
-    "3007 brick 2x8": "2x8",
-    "3007": "2x8",
-
-    "brick 2x10": "2x10",
-    "brick_2x10": "2x10",
-    "3832 brick 2x10": "2x10",
-    "3832": "2x10",
-
-    "brick 2x12": "2x12",
-    "brick_2x12": "2x12",
-    "3028 brick 2x12": "2x12",
-    "3028": "2x12",
+    "plate_2x4": "plate_2x4",
+    "plate 2x4": "plate_2x4",
 }
 
 # ============================================================================

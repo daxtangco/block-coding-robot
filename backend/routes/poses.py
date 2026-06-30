@@ -6,6 +6,20 @@ from backend.services.storage import load_poses, save_poses
 
 router = APIRouter()
 
+# Per-channel travel limits, matching the firmware's SERVO_MAX_ANGLE
+# (base, shoulder, elbow, wrist, gripper). Base is a 360° servo; wrist is
+# mechanically limited to 90°.
+SERVO_MAX_ANGLE = [180, 180, 180, 90, 180]
+
+
+def _validate_angles(angles, pose_name=""):
+    where = f" in pose '{pose_name}'" if pose_name else ""
+    if len(angles) != 5:
+        raise HTTPException(400, f"Pose{where} must have exactly 5 angles (base, shoulder, elbow, wrist, gripper)")
+    for i, angle in enumerate(angles):
+        if not (0 <= angle <= SERVO_MAX_ANGLE[i]):
+            raise HTTPException(400, f"Invalid angle{where}: {angle}. Channel {i} must be between 0 and {SERVO_MAX_ANGLE[i]}")
+
 class PoseModel(BaseModel):
     name: str
     angles: List[int]  # [base, shoulder, elbow, wrist, gripper]
@@ -28,13 +42,7 @@ async def add_pose(pose: PoseModel, project_name: str = "default"):
     try:
         poses = load_poses(project_name)
 
-        # Validate angles
-        if len(pose.angles) != 5:
-            raise HTTPException(400, "Pose must have exactly 5 angles (base, shoulder, elbow, wrist, gripper)")
-
-        for angle in pose.angles:
-            if not (0 <= angle <= 180):
-                raise HTTPException(400, f"Invalid angle: {angle}. Must be between 0 and 180")
+        _validate_angles(pose.angles)
 
         # Add/update pose
         poses[pose.name] = pose.angles
@@ -74,11 +82,7 @@ async def update_all_poses(update: PosesUpdate, project_name: str = "default"):
     try:
         # Validate all poses
         for name, angles in update.poses.items():
-            if len(angles) != 5:
-                raise HTTPException(400, f"Pose '{name}' must have exactly 5 angles")
-            for angle in angles:
-                if not (0 <= angle <= 180):
-                    raise HTTPException(400, f"Invalid angle in pose '{name}': {angle}")
+            _validate_angles(angles, name)
 
         save_poses(update.poses, project_name)
         return {"status": "success", "message": "All poses updated successfully", "poses": update.poses}

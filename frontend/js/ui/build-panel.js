@@ -1,5 +1,9 @@
 // Build panel for compiling and downloading firmware
-import { buildFirmware, buildManualMode } from '../api.js';
+import { buildFirmware, buildManualMode, fetchSerialPorts, uploadFirmware } from '../api.js';
+
+// Remember what was last built so the USB-flash button recompiles + uploads
+// the SAME thing (manual = empty code, program = the generated blocks).
+let lastBuild = { generatedCode: '', isManual: true };
 
 export function initBuildPanel() {
     const buildBtn = document.getElementById('build-btn');
@@ -43,6 +47,7 @@ async function buildForManualMode(modal) {
     showBuildProgress('Building firmware for manual control...');
 
     try {
+        lastBuild = { generatedCode: '', isManual: true };
         const result = await buildManualMode();
         showBuildSuccess(result);
     } catch (error) {
@@ -77,6 +82,7 @@ async function buildWithBlocks(modal) {
     showBuildProgress('Compiling your program...');
 
     try {
+        lastBuild = { generatedCode: code, isManual: false };
         const result = await buildFirmware(code);
         showBuildSuccess(result);
     } catch (error) {
@@ -86,7 +92,9 @@ async function buildWithBlocks(modal) {
 
 function showModal(modal) {
     if (modal) {
-        modal.style.display = 'block';
+        // Visibility is driven entirely by the `.active` class (CSS: .modal.active
+        // { display: flex }). Setting an inline display here would override the
+        // class and leave the modal stuck open when close removes `.active`.
         modal.classList.add('active');
     }
 }
@@ -122,13 +130,19 @@ function showBuildSuccess(result) {
                 <p><strong>Target:</strong> ESP32 Arm Controller (PCA9685)</p>
 
                 <div class="flash-options">
-                    <h4>Choose flashing method:</h4>
+                    <h4>Flash to your ESP32:</h4>
+
+                    <div class="flash-port-row">
+                        <label for="flash-port-select">USB Port:</label>
+                        <select id="flash-port-select"><option value="">Detecting...</option></select>
+                        <button id="flash-port-refresh" class="btn-icon-only" title="Refresh ports">🔄</button>
+                    </div>
 
                     <button id="flash-usb-btn" class="btn-primary flash-option">
                         <span class="btn-icon">🔌</span>
                         <div>
                             <strong>Flash via USB</strong>
-                            <small>Use Web Serial API (Chrome/Edge)</small>
+                            <small>Compiles &amp; writes directly to the board</small>
                         </div>
                     </button>
 
@@ -136,42 +150,79 @@ function showBuildSuccess(result) {
                         <span class="btn-icon">💾</span>
                         <div>
                             <strong>Download .bin File</strong>
-                            <small>For manual flashing</small>
+                            <small>For manual flashing (esptool / Arduino IDE)</small>
                         </div>
                     </button>
 
-                    <p class="warning-text" id="browser-warning" style="display: none;">
-                        ⚠️ USB flashing requires Chrome or Edge browser
-                    </p>
+                    <div id="flash-upload-log" class="flash-upload-log"></div>
                 </div>
             </div>
         `;
 
         // Re-attach flash handlers
         attachFlashHandlers(result.download_url);
+        refreshPortList();
     }
+}
+
+async function refreshPortList() {
+    const select = document.getElementById('flash-port-select');
+    if (!select) return;
+    select.innerHTML = '<option value="">Detecting...</option>';
+    try {
+        const ports = await fetchSerialPorts();
+        if (!ports.length) {
+            select.innerHTML = '<option value="">No serial ports found</option>';
+            return;
+        }
+        select.innerHTML = ports
+            .filter(p => p.port)
+            .map(p => `<option value="${p.port}">${p.port}${p.label && p.label !== p.port ? ' — ' + p.label : ''}</option>`)
+            .join('');
+    } catch (e) {
+        select.innerHTML = `<option value="">Error: ${e.message}</option>`;
+    }
+}
+
+function setUploadLog(msg, isError) {
+    const log = document.getElementById('flash-upload-log');
+    if (!log) return;
+    log.textContent = msg;
+    log.style.color = isError ? 'var(--danger-color, #c00)' : 'var(--text-secondary, #888)';
 }
 
 function attachFlashHandlers(firmwareUrl) {
     const flashUsbBtn = document.getElementById('flash-usb-btn');
     const downloadBinBtn = document.getElementById('download-bin-btn');
-    const browserWarning = document.getElementById('browser-warning');
+    const refreshBtn = document.getElementById('flash-port-refresh');
+
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', refreshPortList);
+    }
 
     if (flashUsbBtn) {
         flashUsbBtn.addEventListener('click', async () => {
-            // Check browser support
-            if (!new ESP32Flasher().isSupported()) {
-                if (browserWarning) browserWarning.style.display = 'block';
+            const select = document.getElementById('flash-port-select');
+            const port = select?.value;
+            if (!port) {
+                setUploadLog('Select a USB port first (click 🔄 if none are listed).', true);
                 return;
             }
 
-            // Hide build modal
-            const buildModal = document.getElementById('build-modal');
-            if (buildModal) buildModal.style.display = 'none';
-
-            // Start flash
-            const flashUI = new FlashUI();
-            await flashUI.startFlash(firmwareUrl);
+            flashUsbBtn.disabled = true;
+            setUploadLog(`Compiling & flashing to ${port}… this can take 30–60s. Do not unplug.`, false);
+            try {
+                await uploadFirmware({
+                    port,
+                    generatedCode: lastBuild.generatedCode,
+                    useApMode: true,
+                });
+                setUploadLog(`✅ Flashed to ${port}. The board is rebooting — reconnect your phone to RobotArm-XXXX.`, false);
+            } catch (e) {
+                setUploadLog(`❌ Flash failed: ${e.message}`, true);
+            } finally {
+                flashUsbBtn.disabled = false;
+            }
         });
     }
 

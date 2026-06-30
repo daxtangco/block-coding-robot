@@ -12,8 +12,15 @@ Handles:
 """
 
 import os
+import sys
 import shutil
 import xml.etree.ElementTree as ET
+
+# Windows consoles default to cp1252, which can't encode the ✓ glyphs used in
+# progress output. Force UTF-8 so the script doesn't crash mid-run on Windows.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
 from pathlib import Path
 from typing import Dict, List, Tuple
 import json
@@ -31,6 +38,12 @@ from config import (
     LABEL_MAPPING, SPLIT_RATIOS, VALIDATION, SYNTHETIC_DATASET,
     SYNTHETIC_LABELS, REAL_WORLD_DATASET, REAL_WORLD_IMAGES
 )
+
+# Maps a synthetic-label class id -> one of our TARGET_CLASSES names. The current
+# synthetic dataset is single-class (all id 0) with no per-size information, so we
+# leave this None and skip synthetic annotations. Populate it only if a synthetic
+# source with genuine per-size labels is added.
+SYNTHETIC_CLASS_MAP = None
 
 
 class DatasetPreparer:
@@ -183,9 +196,10 @@ class DatasetPreparer:
         print(f"Found {len(label_files)} label files")
 
         for label_path in tqdm(label_files, desc="Processing synthetic dataset"):
-            # Find corresponding image
-            image_name = label_path.stem.replace("image_", "") + ".jpg"
-            image_path = SYNTHETIC_DATASET / f"{label_path.stem.replace('image_', '').zfill(5)}.jpg"
+            # Synthetic image keeps the label's stem, e.g. image_0.txt -> image_0.jpg.
+            # (The old zfill logic produced 00000.jpg, which collides with the
+            #  real-world JPGs that share the same folder.)
+            image_path = SYNTHETIC_DATASET / f"{label_path.stem}.jpg"
 
             if not image_path.exists():
                 continue
@@ -224,14 +238,22 @@ class DatasetPreparer:
                     class_id = int(float(parts[0]))
                     bbox = [float(x) for x in parts[1:5]]
 
-                    # Map class ID to our target classes
-                    # Note: Synthetic dataset class IDs may differ
-                    # For now, we assume class 0 maps to our classes
-                    # This needs to be adjusted based on actual dataset
-                    if class_id < len(TARGET_CLASSES):
+                    # The synthetic dataset is single-class: every annotation is
+                    # id 0 ("a brick is here"), with no per-size label. There is
+                    # no file mapping image_N.txt back to a shape, so we cannot
+                    # assign one of our size classes without inventing labels.
+                    # Skip these annotations rather than mislabel every brick as
+                    # the first target class. Set SYNTHETIC_CLASS_MAP below if a
+                    # real per-image class source becomes available.
+                    if SYNTHETIC_CLASS_MAP is None:
+                        continue
+
+                    mapped = SYNTHETIC_CLASS_MAP.get(class_id)
+                    if mapped is not None and mapped in CLASS_TO_ID:
                         if self.validate_bbox(bbox, img_width, img_height):
-                            valid_lines.append(line.strip())
-                            self.stats["class_distribution"][TARGET_CLASSES[class_id]] += 1
+                            remapped = f"{CLASS_TO_ID[mapped]} {' '.join(parts[1:5])}"
+                            valid_lines.append(remapped)
+                            self.stats["class_distribution"][mapped] += 1
                             self.stats["valid_annotations"] += 1
 
                 if valid_lines:

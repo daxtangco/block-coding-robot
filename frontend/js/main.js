@@ -3,6 +3,10 @@ import { initBlockly } from './blocks/index.js';
 import { initSetupPanel } from './ui/setup-panel.js';
 import { initPoseTeaching } from './ui/pose-teaching.js';
 import { initBuildPanel } from './ui/build-panel.js';
+import { initProgramManager } from './ui/program-manager.js';
+import { initVisionPanel } from './ui/vision-panel.js';
+import { initTeachPanel } from './ui/teach-panel.js';
+import { initRunPanel } from './ui/run-panel.js';
 
 // Workspace switching
 function initWorkspaces() {
@@ -46,6 +50,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         await initSetupPanel();
         await initPoseTeaching();
         initBuildPanel();
+        await initProgramManager();
+        await initVisionPanel();
+        await initTeachPanel();
+        initRunPanel();
 
         console.log('✅ IDE ready!');
     } catch (error) {

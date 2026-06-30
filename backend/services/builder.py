@@ -43,6 +43,79 @@ def _run_compile_sync(cmd: list, cwd: str) -> Tuple[int, str]:
         import traceback
         return -1, f"Subprocess error: {str(e)}\n{traceback.format_exc()}"
 
+def list_serial_ports() -> list:
+    """Return connected serial ports via `arduino-cli board list`.
+
+    Each entry: {port, protocol, label, fqbn?}. Type is "Unknown" for ESP32
+    USB-UART bridges (they don't self-identify), so we list all serial ports.
+    """
+    try:
+        result = subprocess.run(
+            ["arduino-cli", "board", "list", "--format", "json"],
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            text=True, timeout=30,
+        )
+    except Exception as e:
+        return [{"error": str(e)}]
+
+    import json
+    ports = []
+    try:
+        data = json.loads(result.stdout)
+        # arduino-cli 1.x: {"detected_ports": [{"port": {...}, "matching_boards": [...]}]}
+        entries = data.get("detected_ports", data) if isinstance(data, dict) else data
+        for entry in entries:
+            port = entry.get("port", entry)
+            if port.get("protocol") != "serial":
+                continue
+            boards = entry.get("matching_boards") or []
+            ports.append({
+                "port": port.get("address"),
+                "protocol": port.get("protocol"),
+                "label": port.get("label") or port.get("address"),
+                "fqbn": boards[0]["fqbn"] if boards else None,
+            })
+    except (json.JSONDecodeError, KeyError, TypeError):
+        return [{"error": "Could not parse board list", "raw": result.stdout[:500]}]
+    return ports
+
+
+async def compile_and_upload(
+    sketch_content: str, port: str, board_fqbn: str = "esp32:esp32:esp32"
+) -> Tuple[bool, str]:
+    """Compile the sketch and flash it to the board on `port` in one step.
+
+    Uses `arduino-cli compile --upload`, which recompiles fresh and writes to
+    the chip — no chance of flashing a stale .bin.
+    """
+    build_id = str(uuid.uuid4())
+    build_dir = BUILDS_DIR / build_id
+    build_dir.mkdir()
+    sketch_dir = build_dir / "sketch"
+    sketch_dir.mkdir()
+    (sketch_dir / "sketch.ino").write_text(sketch_content)
+
+    cmd = [
+        "arduino-cli", "compile", "--upload",
+        "--fqbn", board_fqbn,
+        "--port", port,
+        str(sketch_dir),
+    ]
+    try:
+        loop = asyncio.get_event_loop()
+        returncode, output = await loop.run_in_executor(
+            _executor, _run_compile_sync, cmd, str(Path.cwd())
+        )
+        if returncode == 0:
+            return True, output
+        return False, f"Upload failed:\n{output}"
+    except FileNotFoundError as e:
+        return False, f"arduino-cli not found in PATH.\nError: {e}"
+    except Exception as e:
+        import traceback
+        return False, f"Upload error: {e}\n\n{traceback.format_exc()}"
+
+
 async def compile_arduino(sketch_content: str, board_fqbn: str = "esp32:esp32:esp32") -> Tuple[bool, str, Optional[Path]]:
     """
     Compiles Arduino sketch using arduino-cli.

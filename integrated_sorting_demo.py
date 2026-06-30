@@ -4,13 +4,20 @@ Integrated LEGO Detection + Sorting Demo
 Combines YOLOv8 detection with robotic arm sorting logic
 """
 
+import sys
 import cv2
 import numpy as np
 from pathlib import Path
 from typing import List, Tuple
 from ultralytics import YOLO
 
+# Windows consoles default to cp1252; force UTF-8 so ✓ glyphs don't crash output.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+
 from sorting_logic import LEGOSorter, Detection
+from config import get_model_path
 
 
 class IntegratedSortingSystem:
@@ -216,24 +223,22 @@ def demo_workflow():
     print("LEGO DETECTION + SORTING SYSTEM DEMO")
     print("="*70)
 
-    # Initialize system with trained model
-    model_path = "training_output/models/experiment_2_TIMESTAMP/stage2_finetuned/weights/best.pt"
-
-    # Check if model exists
-    if not Path(model_path).exists():
-        print(f"\n⚠ Model not found: {model_path}")
-        print("Please train the model first or update the path.")
+    # Locate trained model (canonical models/ dir or training_output)
+    model_path = get_model_path()
+    if model_path is None:
+        print("\n⚠ No trained model found.")
+        print("  Place your trained best.pt at: models/lego_detector.pt")
+        print("  (e.g. copy it from Google Drive / Colab output)")
         return
 
-    system = IntegratedSortingSystem(model_path, confidence_threshold=0.5)
+    system = IntegratedSortingSystem(str(model_path), confidence_threshold=0.5)
 
-    # Example: Process test image
-    test_image = "datasets/images/00000.jpg"
-
-    if not Path(test_image).exists():
-        print(f"\n⚠ Test image not found: {test_image}")
-        print("Please provide a valid image path.")
+    # Pick the first available real-world test image
+    test_image = next(iter(sorted(Path("datasets/images").glob("*.jpg"))), None)
+    if test_image is None or not test_image.exists():
+        print("\n⚠ No test image found in datasets/images/")
         return
+    test_image = str(test_image)
 
     # Run detection and sorting
     result = system.process_image(test_image)

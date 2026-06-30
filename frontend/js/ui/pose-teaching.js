@@ -1,19 +1,90 @@
 // Pose teaching interface
 import { fetchPoses, savePose, deletePose } from '../api.js';
+import { connectRobot, sendServo, isConnected, onRobotMessage } from './robot-link.js';
 
 let currentPoses = {};
 
+// Slider order maps to firmware servo channels: base=0 … wrist=3. The gripper
+// (channel 4) is open/close buttons, not a slider — see GRIPPER_* below.
+const SLIDER_SERVOS = ['base', 'shoulder', 'elbow', 'wrist'];
+const GRIPPER_CH = 4;
+const GRIPPER_OPEN = 90;
+const GRIPPER_CLOSE = 0;
+// Current gripper state the user has chosen via the buttons; saved into poses.
+let gripperAngle = GRIPPER_CLOSE;
+
+const SEND_INTERVAL = 50;          // throttle slider output (ms)
+const lastSent = [0, 0, 0, 0, 0];
+
+function setConnStatus(text, state) {
+    const el = document.getElementById('pose-conn-status');
+    if (!el) return;
+    el.textContent = text;
+    el.className = `pose-conn-status ${state}`;
+}
+
+// Reflect the shared robot-link connection state in the pose-tab status pill, and
+// push the current slider values once connected so the arm matches the UI.
+function handleConn(msg) {
+    if (msg.type !== '__conn') return;
+    if (msg.connected) {
+        setConnStatus('🟢 Connected — sliders now move the real arm', 'connected');
+        SLIDER_SERVOS.forEach((servo, i) => {
+            sendServo(i, parseInt(document.getElementById(`pose-${servo}`).value));
+        });
+        sendServo(GRIPPER_CH, gripperAngle);
+    } else if (msg.reason === 'connecting') {
+        setConnStatus('Connecting to robot…', 'connecting');
+    } else if (msg.reason === 'unreachable' || msg.reason === 'error') {
+        setConnStatus('Could not reach robot. Join the RobotArm-XXXX WiFi first.', 'disconnected');
+    } else {
+        setConnStatus('Disconnected — reconnecting…', 'disconnected');
+    }
+}
+
+function wsConnected() {
+    return isConnected();
+}
+
 export async function initPoseTeaching() {
-    // Initialize servo control sliders
-    const sliders = ['base', 'shoulder', 'elbow', 'wrist', 'gripper'];
-    sliders.forEach(servo => {
+    // Connect button + reflect shared connection state in the status pill.
+    document.getElementById('pose-connect-btn')?.addEventListener('click', connectRobot);
+    onRobotMessage(handleConn);
+
+    // Initialize servo control sliders (base..wrist; gripper is buttons)
+    SLIDER_SERVOS.forEach((servo, i) => {
         const slider = document.getElementById(`pose-${servo}`);
         const display = slider.nextElementSibling;
 
         slider.addEventListener('input', (e) => {
-            display.textContent = `${e.target.value}°`;
+            const angle = parseInt(e.target.value);
+            display.textContent = `${angle}°`;
+            // Throttle live commands so a drag doesn't flood the robot.
+            const now = Date.now();
+            if (wsConnected() && now - lastSent[i] >= SEND_INTERVAL) {
+                lastSent[i] = now;
+                sendServo(i, angle);
+            }
+        });
+        // Always send the final value when the drag ends.
+        slider.addEventListener('change', (e) => {
+            if (wsConnected()) sendServo(i, parseInt(e.target.value));
         });
     });
+
+    // Gripper open/close buttons. The geared jaws have a narrow usable arc, so
+    // it's open/close only — driving arbitrary angles jams the linkage.
+    const gripOpenBtn = document.getElementById('pose-grip-open');
+    const gripCloseBtn = document.getElementById('pose-grip-close');
+    function setGripper(angle) {
+        gripperAngle = angle;
+        const open = angle === GRIPPER_OPEN;
+        gripOpenBtn.classList.toggle('active', open);
+        gripCloseBtn.classList.toggle('active', !open);
+        if (wsConnected()) sendServo(GRIPPER_CH, angle);
+    }
+    gripOpenBtn.addEventListener('click', () => setGripper(GRIPPER_OPEN));
+    gripCloseBtn.addEventListener('click', () => setGripper(GRIPPER_CLOSE));
 
     // Save pose button
     document.getElementById('save-pose-btn').addEventListener('click', async () => {
@@ -31,13 +102,14 @@ export async function initPoseTeaching() {
             parseInt(document.getElementById('pose-shoulder').value),
             parseInt(document.getElementById('pose-elbow').value),
             parseInt(document.getElementById('pose-wrist').value),
-            parseInt(document.getElementById('pose-gripper').value)
+            gripperAngle
         ];
 
         try {
             currentPoses = await savePose(name, angles);
             await renderPosesList();
             updatePoseCount();
+            syncPoseGlobals();
             alert(`✅ Pose "${name}" saved successfully!`);
         } catch (error) {
             alert('❌ Error saving pose: ' + error.message);
@@ -53,9 +125,17 @@ async function loadPoses() {
         currentPoses = await fetchPoses();
         await renderPosesList();
         updatePoseCount();
+        syncPoseGlobals();
     } catch (error) {
         console.error('Failed to load poses:', error);
     }
+}
+
+// Keep window.getPoseOptions current so the arm.js dropdown generator
+// and Blockly's updatePoseDropdowns always see the latest saved poses.
+function syncPoseGlobals() {
+    window.getPoseOptions = () => Object.keys(currentPoses).map(n => [n, n]);
+    window.updatePoseDropdowns?.();
 }
 
 async function renderPosesList() {
@@ -90,6 +170,7 @@ async function renderPosesList() {
                     currentPoses = await deletePose(name);
                     await renderPosesList();
                     updatePoseCount();
+                    syncPoseGlobals();
                 } catch (error) {
                     alert('❌ Error deleting pose: ' + error.message);
                 }

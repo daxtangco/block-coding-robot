@@ -3,6 +3,12 @@
 // Initialize Arduino generator
 Blockly.Arduino = new Blockly.Generator('Arduino');
 
+// Blockly v10+ looks up per-block generators in `generator.forBlock[type]`
+// rather than directly on the generator object. Alias forBlock to the
+// generator itself so the `Blockly.Arduino['type'] = fn` assignments below
+// register where blockToCode expects them.
+Blockly.Arduino.forBlock = Blockly.Arduino;
+
 // Reserved words
 Blockly.Arduino.addReservedWords(
     'setup,loop,if,else,for,switch,case,while,do,break,continue,return,goto,' +
@@ -43,7 +49,10 @@ Blockly.Arduino.workspaceToCode = function(workspace) {
 Blockly.Arduino.init = function(workspace) {
     // Reset everything
     this.definitions_ = Object.create(null);
-    this.variableDB_ = new Blockly.Names(this.RESERVED_WORDS_);
+    // v10+ renamed variableDB_ -> nameDB_. Keep both pointing at one Names
+    // instance so variable blocks resolve regardless of which the version uses.
+    this.nameDB_ = new Blockly.Names(this.RESERVED_WORDS_);
+    this.variableDB_ = this.nameDB_;
 };
 
 Blockly.Arduino.finish = function(code) {
@@ -105,7 +114,10 @@ Blockly.Arduino['current_confidence'] = function(block) {
 
 Blockly.Arduino['forever_loop'] = function(block) {
     const branch = Blockly.Arduino.statementToCode(block, 'DO');
-    return `while (true) {\n  Blynk.run();\n${branch}}\n`;
+    // Loop while in auto mode (not `while(true)`) so pressing Manual breaks out —
+    // autoMode is volatile and set by the WebSocket Manual button. AP mode uses
+    // WebSocket/AsyncWebServer, so no Blynk.run() needed.
+    return `while (autoMode) {\n${branch}}\n`;
 };
 
 Blockly.Arduino['wait_seconds'] = function(block) {
@@ -185,12 +197,12 @@ Blockly.Arduino['math_arithmetic'] = function(block) {
 };
 
 Blockly.Arduino['variables_get'] = function(block) {
-    const varName = Blockly.Arduino.variableDB_.getName(block.getFieldValue('VAR'), Blockly.Variables.NAME_TYPE);
+    const varName = Blockly.Arduino.nameDB_.getName(block.getFieldValue('VAR'), Blockly.Names.NameType.VARIABLE);
     return [varName, Blockly.Arduino.ORDER_ATOMIC];
 };
 
 Blockly.Arduino['variables_set'] = function(block) {
-    const varName = Blockly.Arduino.variableDB_.getName(block.getFieldValue('VAR'), Blockly.Variables.NAME_TYPE);
+    const varName = Blockly.Arduino.nameDB_.getName(block.getFieldValue('VAR'), Blockly.Names.NameType.VARIABLE);
     const value = Blockly.Arduino.valueToCode(block, 'VALUE', Blockly.Arduino.ORDER_NONE) || '0';
     return `int ${varName} = ${value};\n`;
 };
