@@ -62,3 +62,6 @@ Thumbs.db
 # Training / inference outputs
 runs/
 *.onnx.data
+
+# Serial debug logs
+*serial*.log

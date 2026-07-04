@@ -19,6 +19,14 @@
 const char* SSID     = "ROBOTARM-6654";   // your arm's access point
 const char* PASSWORD = "robot1234";
 
+// Static IP so the camera is ALWAYS at the same address. Without this, the arm's
+// DHCP hands out a different IP on each reboot (192.168.4.2, .3, ...) and the
+// Vision tab loses the camera. .50 sits above the low range DHCP gives phones/PC,
+// so it won't collide. Gateway is the arm AP itself (192.168.4.1).
+IPAddress CAM_IP     (192, 168, 4, 50);
+IPAddress CAM_GATEWAY(192, 168, 4, 1);
+IPAddress CAM_SUBNET (255, 255, 255, 0);
+
 // ── Camera pins (AI-Thinker ESP32-CAM) ───────────────────────────────────────
 #define PWDN_GPIO_NUM     32
 #define RESET_GPIO_NUM    -1
@@ -151,6 +159,9 @@ void setup() {
     Serial.println("Camera OK");
 
     WiFi.mode(WIFI_STA);
+    if (!WiFi.config(CAM_IP, CAM_GATEWAY, CAM_SUBNET)) {
+        Serial.println("Static IP config failed — falling back to DHCP");
+    }
     WiFi.begin(SSID, PASSWORD);
     Serial.printf("Connecting to %s", SSID);
     while (WiFi.status() != WL_CONNECTED) {
