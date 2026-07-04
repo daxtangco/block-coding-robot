@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Robot Auto-Sort</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/lib/blockly/blockly.min.js"></script>
+    <style>
+        body { margin: 0; background: #0f172a; color: #e2e8f0;
+               font-family: system-ui, sans-serif; -webkit-user-select: none; user-select: none; }
+        .m-wrap { max-width: 30rem; margin: 0 auto; padding: 1rem; }
+        .m-title { font-size: 1.4rem; font-weight: 700; text-align: center; margin: 0.5rem 0 1rem; }
+        .m-title small { display: block; font-size: 0.8rem; font-weight: 400; color: #94a3b8; }
+
+        .m-card { background: #1e293b; border-radius: 0.75rem; padding: 1rem; margin-bottom: 1rem; }
+        .m-label { font-size: 0.85rem; color: #94a3b8; margin-bottom: 0.35rem; display: block; }
+        .m-select { width: 100%; padding: 0.75rem; font-size: 1rem; border-radius: 0.5rem;
+                    border: 1px solid #334155; background: #0f172a; color: #e2e8f0; }
+
+        .m-status-row { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+        .m-pill { flex: 1; text-align: center; padding: 0.5rem; border-radius: 0.5rem;
+                  font-size: 0.8rem; font-weight: 600; background: #334155; color: #cbd5e1; }
+        .m-pill.ok { background: #14532d; color: #86efac; }
+        .m-pill.bad { background: #7f1d1d; color: #fca5a5; }
+
+        .m-btn { width: 100%; padding: 1.25rem; font-size: 1.3rem; font-weight: 700;
+                 border: none; border-radius: 0.75rem; color: #fff; cursor: pointer; }
+        .m-btn-auto { background: #16a34a; }
+        .m-btn-auto:disabled { background: #334155; color: #64748b; }
+        .m-btn-stop { background: #dc2626; }
+
+        #m-canvas { width: 100%; border-radius: 0.5rem; background: #000; display: block; }
+        .m-detections { font-size: 0.9rem; }
+        .m-detections ul { margin: 0.3rem 0; padding-left: 1.1rem; }
+        #m-log { font-family: monospace; font-size: 0.75rem; color: #94a3b8;
+                 max-height: 8rem; overflow-y: auto; margin-top: 0.5rem; }
+        #m-log .error { color: #fca5a5; }
+
+        /* Hidden scaffold: reused init modules read these element IDs. We provide
+           them so vision-panel/pose-teaching/run-panel/program-manager work
+           unchanged, without showing the full IDE. */
+        .m-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden;
+                    clip: rect(0 0 0 0); opacity: 0; pointer-events: none; }
+    </style>
+</head>
+<body>
+    <div class="m-wrap">
+        <div class="m-title">
+            🤖 Auto-Sort
+            <small>Detection-driven sorting</small>
+        </div>
+
+        <div class="m-status-row">
+            <div id="m-robot-pill" class="m-pill bad">Robot: …</div>
+            <div id="m-cam-pill" class="m-pill">Camera: idle</div>
+        </div>
+
+        <div class="m-card">
+            <label class="m-label" for="m-program-select">Sort program</label>
+            <select id="m-program-select" class="m-select"><option value="">Loading…</option></select>
+        </div>
+
+        <div class="m-card">
+            <button id="m-auto-btn" class="m-btn m-btn-auto" disabled>▶ AUTO</button>
+            <button id="m-stop-btn" class="m-btn m-btn-stop" style="display:none;">⏹ STOP</button>
+        </div>
+
+        <div class="m-card">
+            <canvas id="m-canvas"></canvas>
+            <div class="m-detections">
+                <div id="m-detections"><p class="help-text">No detections yet.</p></div>
+            </div>
+        </div>
+
+        <div class="m-card">
+            <div id="m-log"></div>
+        </div>
+    </div>
+
+    <!-- ── Hidden scaffold ─────────────────────────────────────────────────────
+         The reused modules (vision-panel.js, pose-teaching.js, program-manager.js,
+         run-panel.js, blocks/index.js) query these IDs at init. Real interactive
+         elements live above; these satisfy the modules' DOM expectations. The
+         camera source is fixed to espcam and rotation defaults to 90° left. -->
+    <div class="m-hidden" aria-hidden="true">
+        <!-- Vision panel -->
+        <div id="vision-model-status"></div>
+        <input type="radio" name="vision-source" value="webcam">
+        <input type="radio" name="vision-source" value="espcam" checked>
+        <div id="espcam-url-row">
+            <input type="text" id="espcam-url" value="http://192.168.4.50">
+            <button id="espcam-ping-btn"></button>
+            <span id="espcam-ping-result"></span>
+            <select id="espcam-rotate">
+                <option value="0">0</option>
+                <option value="90">90</option>
+                <option value="180">180</option>
+                <option value="270" selected>270</option>
+            </select>
+        </div>
+        <button id="vision-start-btn"></button>
+        <button id="vision-stop-btn"></button>
+        <input type="range" id="vision-conf" min="0.1" max="0.9" step="0.05" value="0.5">
+        <span id="vision-conf-value"></span>
+        <video id="vision-video" autoplay playsinline muted></video>
+        <canvas id="vision-canvas"></canvas>
+        <div id="vision-detections"></div>
+
+        <!-- Pose teaching (only Connect + slider/gripper refs are touched here) -->
+        <button id="pose-connect-btn"></button>
+        <span id="pose-conn-status"></span>
+        <input type="range" id="pose-base" min="0" max="180" value="90"><span></span>
+        <input type="range" id="pose-shoulder" min="0" max="180" value="90"><span></span>
+        <input type="range" id="pose-elbow" min="0" max="180" value="90"><span></span>
+        <input type="range" id="pose-wrist" min="0" max="90" value="60"><span></span>
+        <button id="pose-grip-open"></button>
+        <button id="pose-grip-close"></button>
+        <button id="save-pose-btn"></button>
+        <div id="poses-list"></div>
+        <span id="pose-count"></span>
+
+        <!-- Program manager -->
+        <select id="program-select"></select>
+        <button id="save-program-btn"></button>
+        <button id="load-program-btn"></button>
+        <button id="delete-program-btn"></button>
+
+        <!-- Headless Blockly workspace: program-runner walks this. Real div so
+             Blockly.inject succeeds; kept off-screen. -->
+        <div id="blocklyDiv" style="width:1px;height:1px;"></div>
+        <div id="block-count"></div>
+        <pre id="code-output"></pre>
+
+        <!-- Run panel -->
+        <button id="run-program-btn"></button>
+        <button id="stop-program-btn"></button>
+        <div id="run-log"></div>
+    </div>
+
+    <script type="module" src="/static/js/mobile.js"></script>
+</body>
+</html>

@@ -46,6 +46,11 @@ async def root():
     """Serve the main IDE page"""
     return FileResponse("frontend/index.html")
 
+@app.get("/mobile")
+async def mobile():
+    """Serve the lightweight phone Auto-Sort page (no full IDE)."""
+    return FileResponse("frontend/mobile.html")
+
 @app.on_event("startup")
 async def warmup_detector():
     """Pre-load the detection model in a background thread so the first

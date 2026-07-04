@@ -152,7 +152,7 @@ async function startEspcam(canvas) {
 }
 
 // ── public start / stop ───────────────────────────────────────────────────────
-async function startCamera() {
+export async function startCamera() {
     const video  = document.getElementById('vision-video');
     const canvas = document.getElementById('vision-canvas');
     source = document.querySelector('input[name="vision-source"]:checked').value;
@@ -176,7 +176,7 @@ async function startCamera() {
     detectLoop(video, canvas);
 }
 
-function stopCamera() {
+export function stopCamera() {
     running = false;
     clearLatestDetection();
     if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
