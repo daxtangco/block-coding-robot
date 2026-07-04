@@ -119,10 +119,10 @@ export async function pingCamera(baseUrl) {
     return await response.json();   // { reachable: bool, url: string }
 }
 
-export async function fetchCameraFrame(baseUrl) {
+export async function fetchCameraFrame(baseUrl, rotate = 0) {
     const captureUrl = baseUrl.replace(/\/$/, '') + '/capture';
     const response = await fetch(
-        `${API_BASE}/camera/frame?url=${encodeURIComponent(captureUrl)}`
+        `${API_BASE}/camera/frame?url=${encodeURIComponent(captureUrl)}&rotate=${rotate}`
     );
     if (!response.ok) {
         const err = await response.json().catch(() => ({}));

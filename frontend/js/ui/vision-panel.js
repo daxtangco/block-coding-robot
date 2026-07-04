@@ -72,8 +72,10 @@ function renderResults(result) {
 // ── grab a JPEG blob from whichever source is active ─────────────────────────
 async function grabBlob(video, canvas) {
     if (source === 'espcam') {
-        // Backend proxies the frame from the ESP32-CAM.
-        return await fetchCameraFrame(espcamUrl);
+        // Backend proxies the frame from the ESP32-CAM, rotating it if the
+        // camera is mounted sideways so boxes stay aligned with the image.
+        const rotate = parseInt(document.getElementById('espcam-rotate').value, 10) || 0;
+        return await fetchCameraFrame(espcamUrl, rotate);
     }
     // Webcam: draw current video frame to offscreen canvas, encode to JPEG.
     const tmp = document.createElement('canvas');
