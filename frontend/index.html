@@ -187,6 +187,22 @@
 
                         <div id="vision-model-status" class="status-message"></div>
 
+                        <div class="vision-source-row">
+                            <label class="vision-source-label">Camera source:</label>
+                            <label>
+                                <input type="radio" name="vision-source" value="webcam" checked> PC Webcam
+                            </label>
+                            <label>
+                                <input type="radio" name="vision-source" value="espcam"> ESP32-CAM
+                            </label>
+                            <div id="espcam-url-row" style="display:none;">
+                                <input type="text" id="espcam-url" placeholder="http://192.168.4.2"
+                                    style="width:14rem;">
+                                <button id="espcam-ping-btn" class="btn-secondary">🔍 Test</button>
+                                <span id="espcam-ping-result" class="help-text"></span>
+                            </div>
+                        </div>
+
                         <div class="vision-controls">
                             <button id="vision-start-btn" class="btn-primary">📷 Start Camera</button>
                             <button id="vision-stop-btn" class="btn-secondary" style="display:none;">⏹ Stop Camera</button>

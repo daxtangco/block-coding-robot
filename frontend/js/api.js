@@ -111,6 +111,26 @@ export async function buildFirmware(generatedCode, targetBoard = 'arm', projectN
     return await response.json();
 }
 
+// ── ESP32-CAM proxy (Vision tab) ────────────────────────────────────────────
+
+export async function pingCamera(baseUrl) {
+    const response = await fetch(`${API_BASE}/camera/ping?url=${encodeURIComponent(baseUrl)}`);
+    if (!response.ok) throw new Error('Ping request failed');
+    return await response.json();   // { reachable: bool, url: string }
+}
+
+export async function fetchCameraFrame(baseUrl) {
+    const captureUrl = baseUrl.replace(/\/$/, '') + '/capture';
+    const response = await fetch(
+        `${API_BASE}/camera/frame?url=${encodeURIComponent(captureUrl)}`
+    );
+    if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.detail || 'Could not fetch frame from ESP32-CAM');
+    }
+    return await response.blob();   // JPEG blob, same as webcam canvas.toBlob()
+}
+
 export async function fetchDetectStatus() {
     const response = await fetch(`${API_BASE}/detect/status`);
     const data = await response.json();

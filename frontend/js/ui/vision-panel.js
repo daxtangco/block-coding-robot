@@ -1,23 +1,25 @@
-// Live webcam detection panel.
-// Captures webcam frames, posts them to /api/detect, draws boxes + bins.
+// Live detection panel.
+// Supports two camera sources:
+//   "webcam"  — browser getUserMedia (PC webcam, existing behaviour)
+//   "espcam"  — ESP32-CAM /capture polled via the backend proxy /api/camera/frame
+//
+// The detection loop is identical for both: grab a JPEG blob, POST to /api/detect,
+// draw boxes. Switching source just changes how the blob is obtained.
 
-import { fetchDetectStatus, detectImage } from '../api.js';
+import { fetchDetectStatus, detectImage, pingCamera, fetchCameraFrame } from '../api.js';
 import { setLatestDetection, clearLatestDetection } from './vision-state.js';
 
-// Small gap between detections so the UI/event loop can breathe. The loop is
-// self-scheduling (next runs only after the previous finishes), so requests
-// never stack up regardless of how slow CPU inference is.
-const DETECT_GAP_MS = 60;
+const DETECT_GAP_MS = 60;   // ms between detections (self-scheduling loop)
 
-let stream = null;
-let running = false;
+let stream    = null;   // MediaStream when using webcam
+let running   = false;
 let firstFrame = true;
+let source    = 'webcam';   // 'webcam' | 'espcam'
+let espcamUrl = '';
 
-// The program-runner gates Run on this so camera_sees always has fresh data.
-export function isCameraRunning() {
-    return running;
-}
+export function isCameraRunning() { return running; }
 
+// ── status helper ─────────────────────────────────────────────────────────────
 function setStatus(msg, ok) {
     const el = document.getElementById('vision-model-status');
     if (!el) return;
@@ -25,11 +27,12 @@ function setStatus(msg, ok) {
     el.style.color = ok ? '#0a0' : '#c00';
 }
 
-function drawDetections(video, canvas, detections) {
+// ── draw bounding boxes on canvas ─────────────────────────────────────────────
+function drawDetections(imgEl, canvas, detections) {
     const ctx = canvas.getContext('2d');
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    canvas.width  = imgEl.videoWidth  || imgEl.naturalWidth  || 640;
+    canvas.height = imgEl.videoHeight || imgEl.naturalHeight || 480;
+    ctx.drawImage(imgEl, 0, 0, canvas.width, canvas.height);
 
     ctx.lineWidth = 2;
     ctx.font = '16px sans-serif';
@@ -48,11 +51,12 @@ function drawDetections(video, canvas, detections) {
     }
 }
 
+// ── render text results list ──────────────────────────────────────────────────
 function renderResults(result) {
     const el = document.getElementById('vision-detections');
     if (!el) return;
     if (!result.count) {
-        el.innerHTML = '<p class="help-text">No bricks detected in frame.</p>';
+        el.innerHTML = '<p class="help-text">No objects detected in frame.</p>';
         return;
     }
     const rows = result.detections.map(d =>
@@ -65,85 +69,167 @@ function renderResults(result) {
     el.innerHTML = `<ul>${rows}</ul><p class="help-text">${bins}</p>`;
 }
 
-async function detectLoop(video, canvas) {
-    if (!running || !stream) return;
-    try {
-        // Grab current frame into an offscreen canvas, encode to JPEG blob.
-        const tmp = document.createElement('canvas');
-        tmp.width = video.videoWidth || 640;
-        tmp.height = video.videoHeight || 480;
-        tmp.getContext('2d').drawImage(video, 0, 0, tmp.width, tmp.height);
-        const blob = await new Promise(res => tmp.toBlob(res, 'image/jpeg', 0.85));
+// ── grab a JPEG blob from whichever source is active ─────────────────────────
+async function grabBlob(video, canvas) {
+    if (source === 'espcam') {
+        // Backend proxies the frame from the ESP32-CAM.
+        return await fetchCameraFrame(espcamUrl);
+    }
+    // Webcam: draw current video frame to offscreen canvas, encode to JPEG.
+    const tmp = document.createElement('canvas');
+    tmp.width  = video.videoWidth  || 640;
+    tmp.height = video.videoHeight || 480;
+    tmp.getContext('2d').drawImage(video, 0, 0, tmp.width, tmp.height);
+    return new Promise(res => tmp.toBlob(res, 'image/jpeg', 0.85));
+}
 
-        if (firstFrame) {
-            setStatus('Loading model & detecting (first frame may take a few seconds)...', true);
-        }
-        const conf = parseFloat(document.getElementById('vision-conf').value);
+// ── draw a blob onto the canvas (for ESP32-CAM preview) ──────────────────────
+async function blobToImage(blob) {
+    return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(blob);
+        const img = new Image();
+        img.onload  = () => { URL.revokeObjectURL(url); resolve(img); };
+        img.onerror = reject;
+        img.src = url;
+    });
+}
+
+// ── main detection loop ───────────────────────────────────────────────────────
+async function detectLoop(video, canvas) {
+    if (!running) return;
+    try {
+        const blob = await grabBlob(video, canvas);
+        if (!blob) { if (running) setTimeout(() => detectLoop(video, canvas), DETECT_GAP_MS); return; }
+
+        if (firstFrame) setStatus('Loading model & detecting (first frame may take a few seconds)...', true);
+
+        const conf   = parseFloat(document.getElementById('vision-conf').value);
         const result = await detectImage(blob, conf);
-        if (firstFrame) {
-            firstFrame = false;
-            setStatus('Camera running — detecting...', true);
+
+        if (firstFrame) { firstFrame = false; setStatus('Camera running — detecting...', true); }
+
+        // For ESP32-CAM, decode the blob to draw it on the canvas first.
+        if (source === 'espcam') {
+            const img = await blobToImage(blob);
+            drawDetections(img, canvas, result.detections);
+        } else {
+            drawDetections(video, canvas, result.detections);
         }
-        // Publish for the program-runner's camera_sees blocks.
+
         setLatestDetection(result);
-        drawDetections(video, canvas, result.detections);
         renderResults(result);
     } catch (e) {
         setStatus(`Detection error: ${e.message}`, false);
     } finally {
-        // Self-schedule: next detection only starts after this one finishes,
-        // so slow CPU inference never piles up a backlog of requests.
         if (running) setTimeout(() => detectLoop(video, canvas), DETECT_GAP_MS);
     }
 }
 
-async function startCamera() {
-    const video = document.getElementById('vision-video');
-    const canvas = document.getElementById('vision-canvas');
+// ── start webcam ──────────────────────────────────────────────────────────────
+async function startWebcam(video, canvas) {
     try {
         stream = await navigator.mediaDevices.getUserMedia({ video: true });
         video.srcObject = stream;
         await video.play();
+        video.style.display = 'none';   // canvas shows the annotated feed
         canvas.style.display = '';
-        document.getElementById('vision-start-btn').style.display = 'none';
-        document.getElementById('vision-stop-btn').style.display = '';
-        setStatus('Camera running — detecting...', true);
-        running = true;
-        firstFrame = true;
-        detectLoop(video, canvas);
     } catch (e) {
-        setStatus(`Cannot access camera: ${e.message}`, false);
+        throw new Error(`Cannot access webcam: ${e.message}`);
     }
+}
+
+// ── start ESP32-CAM ───────────────────────────────────────────────────────────
+async function startEspcam(canvas) {
+    const url = document.getElementById('espcam-url').value.trim();
+    if (!url) throw new Error('Enter the ESP32-CAM IP address first (e.g. http://192.168.4.2)');
+    espcamUrl = url;
+    // Quick reachability check before committing to the loop.
+    const ping = await pingCamera(url);
+    if (!ping.reachable) throw new Error(`ESP32-CAM not reachable at ${url} — check IP and WiFi`);
+    canvas.style.display = '';
+}
+
+// ── public start / stop ───────────────────────────────────────────────────────
+async function startCamera() {
+    const video  = document.getElementById('vision-video');
+    const canvas = document.getElementById('vision-canvas');
+    source = document.querySelector('input[name="vision-source"]:checked').value;
+
+    setStatus('Connecting...', true);
+    try {
+        if (source === 'webcam') {
+            await startWebcam(video, canvas);
+        } else {
+            await startEspcam(canvas);
+        }
+    } catch (e) {
+        setStatus(e.message, false);
+        return;
+    }
+
+    document.getElementById('vision-start-btn').style.display = 'none';
+    document.getElementById('vision-stop-btn').style.display  = '';
+    running    = true;
+    firstFrame = true;
+    detectLoop(video, canvas);
 }
 
 function stopCamera() {
     running = false;
-    clearLatestDetection();  // stale frames must not drive camera_sees
+    clearLatestDetection();
     if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+    const video = document.getElementById('vision-video');
+    if (video) { video.srcObject = null; }
     document.getElementById('vision-start-btn').style.display = '';
-    document.getElementById('vision-stop-btn').style.display = 'none';
+    document.getElementById('vision-stop-btn').style.display  = 'none';
     setStatus('Camera stopped.', true);
 }
 
+// ── init ──────────────────────────────────────────────────────────────────────
 export async function initVisionPanel() {
     const startBtn = document.getElementById('vision-start-btn');
-    const stopBtn = document.getElementById('vision-stop-btn');
-    const confSlider = document.getElementById('vision-conf');
-    const confValue = document.getElementById('vision-conf-value');
-    if (!startBtn) return;  // panel not present
+    if (!startBtn) return;
 
+    // Source radio toggle — show/hide IP input row
+    document.querySelectorAll('input[name="vision-source"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+            const isEsp = radio.value === 'espcam' && radio.checked;
+            document.getElementById('espcam-url-row').style.display = isEsp ? '' : 'none';
+        });
+    });
+
+    // Ping / test button
+    document.getElementById('espcam-ping-btn').addEventListener('click', async () => {
+        const url    = document.getElementById('espcam-url').value.trim();
+        const result = document.getElementById('espcam-ping-result');
+        if (!url) { result.textContent = 'Enter an IP first.'; return; }
+        result.textContent = 'Testing...';
+        try {
+            const ping = await pingCamera(url);
+            result.textContent = ping.reachable ? '✅ Reachable!' : '❌ Not reachable — check IP and WiFi';
+            result.style.color = ping.reachable ? '#0a0' : '#c00';
+        } catch {
+            result.textContent = '❌ Request failed';
+            result.style.color = '#c00';
+        }
+    });
+
+    // Confidence slider display
+    const confSlider = document.getElementById('vision-conf');
+    const confValue  = document.getElementById('vision-conf-value');
     confSlider.addEventListener('input', () => {
         confValue.textContent = parseFloat(confSlider.value).toFixed(2);
     });
+
     startBtn.addEventListener('click', startCamera);
-    stopBtn.addEventListener('click', stopCamera);
+    document.getElementById('vision-stop-btn').addEventListener('click', stopCamera);
 
-
+    // Check model availability
     const available = await fetchDetectStatus();
     if (available) {
-        setStatus('Model loaded. Click Start Camera.', true);
+        setStatus('Model loaded. Choose a camera source and click Start Camera.', true);
     } else {
-        setStatus('No trained model found. Place best.pt at models/lego_detector.pt', false);
+        setStatus('No trained model found. Place best.pt at models/lego_detector.pt or train one in the Train Model tab.', false);
         startBtn.disabled = true;
     }
 }
