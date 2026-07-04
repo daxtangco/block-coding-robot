@@ -193,8 +193,8 @@ export async function initVisionPanel() {
     // Source radio toggle — show/hide IP input row
     document.querySelectorAll('input[name="vision-source"]').forEach(radio => {
         radio.addEventListener('change', () => {
-            const isEsp = radio.value === 'espcam' && radio.checked;
-            document.getElementById('espcam-url-row').style.display = isEsp ? '' : 'none';
+            const selected = document.querySelector('input[name="vision-source"]:checked').value;
+            document.getElementById('espcam-url-row').style.display = selected === 'espcam' ? '' : 'none';
         });
     });
 
