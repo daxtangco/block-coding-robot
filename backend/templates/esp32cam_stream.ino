@@ -16,7 +16,7 @@
 
 // ── WiFi ─────────────────────────────────────────────────────────────────────
 // Connect to the arm's access point.
-const char* SSID     = "RobotArm-XXXX";   // change XXXX to your arm's suffix
+const char* SSID     = "ROBOTARM-6654";   // your arm's access point
 const char* PASSWORD = "robot1234";
 
 // ── Camera pins (AI-Thinker ESP32-CAM) ───────────────────────────────────────
@@ -62,14 +62,36 @@ bool initCamera() {
     config.pin_reset     = RESET_GPIO_NUM;
     config.xclk_freq_hz  = 20000000;
     config.pixel_format  = PIXFORMAT_JPEG;
-    config.frame_size    = FRAMESIZE_QVGA;   // 320x240 — good for detection
-    config.jpeg_quality  = 12;               // 0-63, lower = better quality
-    config.fb_count      = 1;
+    // VGA (640x480) matches YOLOv8's native 640px input — the model sees full
+    // detail without upscaling. The AI-Thinker has 4MB PSRAM so we can afford
+    // it; use 2 frame buffers for smoother back-to-back captures.
+    config.frame_size    = FRAMESIZE_VGA;
+    config.jpeg_quality  = 8;    // 0-63, lower = better; 8 is high quality
+    config.fb_count      = 2;    // double-buffer needs PSRAM (AI-Thinker has it)
+    config.fb_location   = CAMERA_FB_IN_PSRAM;
+    config.grab_mode     = CAMERA_GRAB_LATEST;  // always return the freshest frame
 
     esp_err_t err = esp_camera_init(&config);
     if (err != ESP_OK) {
         Serial.printf("Camera init failed: 0x%x\n", err);
         return false;
+    }
+
+    // OV2640 sensor tuning — applied after init via the sensor API.
+    // These make a big difference on the flat-lit desk environment.
+    sensor_t* s = esp_camera_sensor_get();
+    if (s) {
+        s->set_brightness(s,  1);   // +1 brighter (range -2 to +2)
+        s->set_contrast(s,    1);   // +1 contrast  (range -2 to +2)
+        s->set_saturation(s,  0);   // neutral saturation
+        s->set_sharpness(s,   1);   // +1 sharpness
+        s->set_denoise(s,     1);   // noise reduction on
+        s->set_whitebal(s,    1);   // auto white balance on
+        s->set_awb_gain(s,    1);   // AWB gain on
+        s->set_exposure_ctrl(s, 1); // auto exposure on
+        s->set_aec2(s,        1);   // AEC2 (better exposure algorithm)
+        s->set_ae_level(s,    0);   // neutral AE bias
+        s->set_gain_ctrl(s,   1);   // auto gain on
     }
     return true;
 }
