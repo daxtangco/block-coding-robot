@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.routes import build, settings, poses, detect, teach, programs, train
+from backend.routes import build, settings, poses, detect, teach, programs, train, camera
 
 # Fix Windows asyncio subprocess support
 if sys.platform == 'win32':
@@ -36,6 +36,7 @@ app.include_router(programs.router, prefix="/api", tags=["programs"])
 app.include_router(detect.router, prefix="/api", tags=["detect"])
 app.include_router(teach.router, prefix="/api", tags=["teach"])
 app.include_router(train.router, prefix="/api", tags=["train"])
+app.include_router(camera.router, prefix="/api", tags=["camera"])
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="frontend"), name="static")
