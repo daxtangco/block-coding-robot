@@ -30,8 +30,8 @@ const uint8_t PWM_CHANNEL[5] = {0, 2, 4, 6, 8};
 
 // Per-servo pulse calibration (adjust if a servo doesn't reach full range).
 // PULSE_MIN = pulse at 0°, PULSE_MAX = pulse at max angle.
-const int SERVO_PULSE_MIN[5] = {100, 100, 100, 100, 100};
-const int SERVO_PULSE_MAX[5] = {500, 500, 500, 500, 500};
+const int SERVO_PULSE_MIN[5] = {150, 150, 150, 150, 150};
+const int SERVO_PULSE_MAX[5] = {450, 450, 450, 450, 450};
 
 // Per-channel travel range.
 const int SERVO_MAX_ANGLE[5] = {180, 180, 180, 90, 90};
