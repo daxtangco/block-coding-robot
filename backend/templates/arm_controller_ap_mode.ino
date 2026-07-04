@@ -256,8 +256,8 @@ const uint8_t PWM_CHANNEL[5] = {0, 2, 4, 6, 8};
 // shared min/max can't, because each servo's horn seats slightly differently
 // (e.g. the inverted shoulder read ~120° physical at logical 90° before tuning).
 // Order: base, shoulder, elbow, wrist, gripper.
-const int SERVO_PULSE_MIN[5] = {100, 100, 100, 100, 100};
-const int SERVO_PULSE_MAX[5] = {500, 500, 500, 500, 500};
+const int SERVO_PULSE_MIN[5] = {150, 150, 150, 150, 150};
+const int SERVO_PULSE_MAX[5] = {450, 450, 450, 450, 450};
 
 // Per-channel travel range. Base is capped at 180° (the rear 180° points away
 // from the workspace and isn't needed); wrist is limited to 0-90°; the gripper
