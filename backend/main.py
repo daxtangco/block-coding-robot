@@ -61,7 +61,22 @@ async def health_check():
     return {"status": "ok", "message": "Block Robot IDE is running"}
 
 if __name__ == "__main__":
+    import socket
     import uvicorn
+
+    # Bind to 0.0.0.0 so phones/tablets on the robot's WiFi (ROBOTARM-XXXX) can
+    # reach the IDE — not just this PC. The phone opens http://<this-PC-IP>:8000.
+    def _lan_ip():
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("192.168.4.1", 80))  # arm AP gateway; no packets sent
+            ip = s.getsockname()[0]
+            s.close()
+            return ip
+        except Exception:
+            return "127.0.0.1"
+
     print("Starting Block Robot IDE server...")
-    print("Open http://localhost:8000 in your browser")
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    print(f"  On this PC:      http://localhost:8000")
+    print(f"  On phone/tablet: http://{_lan_ip()}:8000  (must be on the same WiFi)")
+    uvicorn.run(app, host="0.0.0.0", port=8000)
