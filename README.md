@@ -33,6 +33,24 @@ computer figures out what's in it, and the arm acts on the result.
 
 ---
 
+## Easiest install (no terminal)
+
+1. Go to the [latest release](https://github.com/daxtangco/block-coding-robot/releases/latest)
+   and download the file for your computer:
+   - Windows: `Block-Robot.exe`
+   - macOS: `Block-Robot` (right-click → Open the first time)
+   - Linux: `Block-Robot` (mark executable, then run)
+2. Double-click it. The launcher window opens.
+3. Click **⚙️ Set up / update** once and wait — it installs everything and
+   downloads the detection model.
+4. Click **▶ Start IDE**. Your browser opens the IDE.
+
+If a row shows ❌, the launcher tells you exactly what to do (for example,
+install Python or join the robot's WiFi), then click **🩺 Check my system**
+again.
+
+---
+
 ## Part 1 — Run the IDE on your computer
 
 You can do this part with **no robot and no camera** — it's how you build and preview
