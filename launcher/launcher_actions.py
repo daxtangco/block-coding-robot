@@ -7,6 +7,7 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 import urllib.request
 from pathlib import Path
 from typing import Optional
@@ -107,7 +108,13 @@ def download_model(project_root: Path, log, url: str = MODEL_URL) -> bool:
         if part.exists():
             part.unlink()
         return False
-    part.replace(dest)
+    try:
+        part.replace(dest)
+    except OSError as e:
+        log(f"ERROR: could not finalize model file: {e}")
+        if part.exists():
+            part.unlink()
+        return False
     log("Model downloaded.")
     return True
 
@@ -115,11 +122,22 @@ def download_model(project_root: Path, log, url: str = MODEL_URL) -> bool:
 def start_backend(project_root: Path, log) -> subprocess.Popen:
     root = Path(project_root)
     py = venv_python(root)
+    log_dir = root / "logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_path = log_dir / "backend.log"
     log("Starting IDE server on http://localhost:8000 …")
-    return subprocess.Popen(
+    logf = open(log_path, "w")
+    proc = subprocess.Popen(
         [str(py), str(root / "backend" / "main.py")],
         cwd=str(root),
+        stdout=logf, stderr=subprocess.STDOUT,
     )
+    # Give the server a moment; if it dies immediately, surface why.
+    time.sleep(2)
+    if proc.poll() is not None:
+        log(f"ERROR: IDE server exited immediately (code {proc.returncode}). "
+            f"See {log_path} for details, then click Set up again.")
+    return proc
 
 
 def flash_firmware(project_root: Path, port: str, sketch_path: Path, log) -> bool:
