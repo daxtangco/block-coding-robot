@@ -66,3 +66,6 @@ runs/
 
 # Serial debug logs
 *serial*.log
+
+# Launcher runtime logs (backend stdout/stderr captured by start_backend)
+logs/
