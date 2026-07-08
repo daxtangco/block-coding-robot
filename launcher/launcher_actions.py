@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Optional
 
 from launcher.doctor import venv_python
+from launcher import doctor
 
 
 def _stream(cmd, log) -> int:
@@ -134,4 +135,34 @@ def flash_firmware(project_root: Path, port: str, sketch_path: Path, log) -> boo
         log("ERROR: flash failed")
         return False
     log("Flash complete.")
+    return True
+
+
+def run_setup(project_root: Path, log,
+              req_files=("backend/requirements.txt", "requirements-vision.txt")) -> bool:
+    root = Path(project_root)
+
+    sys_py = find_system_python()
+    if not sys_py:
+        log("ERROR: No Python 3.8+ found. Install it from https://python.org, "
+            "then click Set up again.")
+        return False
+    log(f"Using system Python: {sys_py}")
+
+    if not venv_python(root).exists():
+        if not create_venv(root, sys_py, log):
+            return False
+    else:
+        log(".venv already exists — reusing it.")
+
+    if not pip_install(root, list(req_files), log):
+        return False
+
+    if doctor.check_model(root).status == "ok":
+        log("Model already present — skipping download.")
+    else:
+        if not download_model(root, log):
+            return False
+
+    log("✅ Setup complete.")
     return True
