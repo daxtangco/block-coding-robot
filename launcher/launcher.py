@@ -72,24 +72,29 @@ class LauncherApp:
                 self.log.see("end")
         except queue.Empty:
             pass
-        self.root.after(100, self._drain)
+        try:
+            self.root.after(100, self._drain)
+        except tk.TclError:
+            pass  # window closed mid-action
 
     def _run_bg(self, fn):
         threading.Thread(target=fn, daemon=True).start()
 
     # ---- button handlers ----
     def on_check(self):
-        self._log("── Checking system ──")
-        for r in doctor.run_checks(self.proj, include_flash=False):
-            icon = "✅" if r.status == "ok" else "❌"
-            self._log(f"{icon} {r.label}: {r.message}")
-            if r.status == "fail" and r.fix_hint:
-                self._log(f"   → {r.fix_hint}")
+        def work():
+            self._log("── Checking system ──")
+            for r in doctor.run_checks(self.proj, include_flash=False):
+                icon = "✅" if r.status == "ok" else "❌"
+                self._log(f"{icon} {r.label}: {r.message}")
+                if r.status == "fail" and r.fix_hint:
+                    self._log(f"   → {r.fix_hint}")
+        self._run_bg(work)
 
     def on_setup(self):
         def work():
             actions.run_setup(self.proj, self._log)
-            self.on_check()
+            self.root.after(0, self.on_check)  # dispatch back to main thread
         self._run_bg(work)
 
     def on_start(self):
@@ -99,7 +104,7 @@ class LauncherApp:
             self._log(f"❌ Can't start yet: {fail.label} — {fail.fix_hint}")
             return
         if self.backend_proc and self.backend_proc.poll() is None:
-            self._log("IDE already running.")
+            self._log("IDE already running — reopening browser tab.")
         else:
             self.backend_proc = actions.start_backend(self.proj, self._log)
         webbrowser.open("http://localhost:8000")
