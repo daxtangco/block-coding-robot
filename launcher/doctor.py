@@ -5,6 +5,9 @@ Pure logic — must NOT import tkinter, so it stays unit-testable.
 """
 import sys
 import platform
+import shutil
+import socket
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -53,3 +56,48 @@ def check_venv(project_root: Path) -> CheckResult:
         "No .venv yet",
         "Click Set up to create the project environment.",
     )
+
+
+def check_deps_installed(project_root: Path, venv_py: Path, import_probe: str,
+                         label: str, fix_hint: str) -> CheckResult:
+    if not venv_py.exists():
+        return CheckResult("fail", label, "No .venv yet", fix_hint)
+    try:
+        r = subprocess.run(
+            [str(venv_py), "-c", f"import {import_probe}"],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=60,
+        )
+    except Exception as e:
+        return CheckResult("fail", label, f"Could not probe: {e}", fix_hint)
+    if r.returncode == 0:
+        return CheckResult("ok", label, f"{label} installed")
+    return CheckResult("fail", label, f"{label} missing", fix_hint)
+
+
+def check_model(project_root: Path) -> CheckResult:
+    m = Path(project_root) / "models" / "lego_detector.pt"
+    if m.exists():
+        return CheckResult("ok", "Model", "Model file present")
+    return CheckResult(
+        "fail", "Model", "lego_detector.pt not found",
+        "Click Set up to download the model.",
+    )
+
+
+def check_tool_on_path(tool: str, label: str, fix_hint: str) -> CheckResult:
+    if shutil.which(tool):
+        return CheckResult("ok", label, f"{tool} found")
+    return CheckResult("fail", label, f"{tool} not on PATH", fix_hint)
+
+
+def check_arm_reachable(host: str = "192.168.4.1", port: int = 80,
+                        timeout: float = 1.5) -> CheckResult:
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return CheckResult("ok", "Arm", f"Arm reachable at {host}")
+    except OSError:
+        return CheckResult(
+            "fail", "Arm", "Arm not reachable",
+            f"Join the ROBOTARM-6654 WiFi, then click Re-check. "
+            f"(Optional — only needed to drive the robot.)",
+        )
