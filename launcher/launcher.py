@@ -46,6 +46,7 @@ class LauncherApp:
         self._btn(btns, "▶ Start IDE", self.on_start)
         self._btn(btns, "⚙️ Set up / update", self.on_setup)
         self._btn(btns, "🩺 Check my system", self.on_check)
+        self._btn(btns, "🔨 Flash the robot", self.on_flash)
 
         self.log = scrolledtext.ScrolledText(body, width=52, height=16,
                                              bg="#020617", fg="#e2e8f0",
@@ -108,6 +109,29 @@ class LauncherApp:
         else:
             self.backend_proc = actions.start_backend(self.proj, self._log)
         webbrowser.open("http://localhost:8000")
+
+    def on_flash(self):
+        results = doctor.run_checks(self.proj, include_flash=True)
+        # arduino-cli (index 5) is required; arm (index 6) is optional.
+        arduino = results[5]
+        if arduino.status != "ok":
+            self._log(f"❌ {arduino.label}: {arduino.fix_hint}")
+            return
+
+        sys.path.insert(0, str(self.proj))
+        from backend.services.builder import list_serial_ports, get_template_path
+
+        ports = [p for p in list_serial_ports() if p.get("port")]
+        if not ports:
+            self._log("❌ No serial port found. Plug in the ESP32 over USB, then Re-check.")
+            return
+        port = ports[0]["port"]
+        sketch = get_template_path(use_ap_mode=True)
+        self._log(f"Flashing {sketch.name} to {port} …")
+
+        def work():
+            actions.flash_firmware(self.proj, port, sketch, self._log)
+        self._run_bg(work)
 
 
 def main():
