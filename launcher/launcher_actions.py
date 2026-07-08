@@ -8,25 +8,38 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import Optional
 
 from launcher.doctor import venv_python
 
 
 def _stream(cmd, log) -> int:
-    """Run cmd, pipe stdout+stderr line-by-line into log(str). Return exit code."""
+    """Run cmd, pipe stdout+stderr line-by-line into log(str). Return exit code.
+
+    A failure to spawn (e.g. executable not found) is reported through `log`
+    and returned as exit code 127 rather than raised, so callers can rely on
+    the return code for every failure mode.
+    """
     log(f"$ {' '.join(str(c) for c in cmd)}")
-    proc = subprocess.Popen(
-        [str(c) for c in cmd],
-        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-        text=True, bufsize=1,
-    )
-    for line in proc.stdout:
-        log(line.rstrip("\n"))
+    try:
+        proc = subprocess.Popen(
+            [str(c) for c in cmd],
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            text=True, bufsize=1,
+        )
+    except OSError as e:
+        log(f"ERROR: could not run {cmd[0]}: {e}")
+        return 127
+    try:
+        for line in proc.stdout:
+            log(line.rstrip("\n"))
+    finally:
+        proc.stdout.close()
     proc.wait()
     return proc.returncode
 
 
-def find_system_python() -> str:
+def find_system_python() -> Optional[str]:
     """Find a real system Python 3.8+ (not the frozen launcher interpreter)."""
     candidates = ["python3", "python"]
     # When NOT frozen, the running interpreter is itself a valid choice.
@@ -61,7 +74,8 @@ def create_venv(project_root: Path, system_python: str, log) -> bool:
 def pip_install(project_root: Path, req_files, log) -> bool:
     root = Path(project_root)
     py = venv_python(root)
-    _stream([str(py), "-m", "pip", "install", "--upgrade", "pip"], log)
+    if _stream([str(py), "-m", "pip", "install", "--upgrade", "pip"], log) != 0:
+        log("WARNING: pip self-upgrade failed; continuing with existing pip")
     for req in req_files:
         code = _stream([str(py), "-m", "pip", "install", "-r", str(root / req)], log)
         if code != 0:
