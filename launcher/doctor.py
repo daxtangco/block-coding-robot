@@ -103,3 +103,36 @@ def check_arm_reachable(host: str = "192.168.4.1", port: int = 80,
             f"Join the ROBOTARM-6654 WiFi, then click Re-check. "
             f"(Optional — only needed to drive the robot.)",
         )
+
+
+WEB_FIX = "Click Set up to install the web dependencies."
+VISION_FIX = "Click Set up to install the vision dependencies."
+ARDUINO_FIX = ("Install arduino-cli and the esp32 core "
+               "(see docs/ARDUINO_CLI_SETUP.md), then Re-check.")
+
+
+def run_checks(project_root: Path, include_flash: bool = False) -> list:
+    root = Path(project_root)
+    py = venv_python(root)
+    results = [
+        check_python(),
+        check_venv(root),
+        check_deps_installed(root, py, "fastapi", "Web deps", WEB_FIX),
+        check_deps_installed(root, py, "ultralytics", "Vision deps", VISION_FIX),
+        check_model(root),
+    ]
+    if include_flash:
+        results.append(check_tool_on_path("arduino-cli", "arduino-cli", ARDUINO_FIX))
+        results.append(check_arm_reachable())
+    return results
+
+
+def all_ok(results: list) -> bool:
+    return all(r.status == "ok" for r in results)
+
+
+def first_failure(results: list):
+    for r in results:
+        if r.status == "fail":
+            return r
+    return None
