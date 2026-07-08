@@ -58,6 +58,7 @@ Thumbs.db
 # Agent / tooling state (oh-my-claudecode scratch data)
 .omc/
 **/.omc/
+.superpowers/
 
 # Training / inference outputs
 runs/
