@@ -7,6 +7,7 @@ import os
 import shutil
 import subprocess
 import sys
+import urllib.request
 from pathlib import Path
 from typing import Optional
 
@@ -81,4 +82,56 @@ def pip_install(project_root: Path, req_files, log) -> bool:
         if code != 0:
             log(f"ERROR: pip install -r {req} failed")
             return False
+    return True
+
+
+MODEL_URL = (
+    "https://github.com/daxtangco/block-coding-robot/"
+    "releases/latest/download/lego_detector.pt"
+)
+
+
+def download_model(project_root: Path, log, url: str = MODEL_URL) -> bool:
+    root = Path(project_root)
+    dest_dir = root / "models"
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest = dest_dir / "lego_detector.pt"
+    part = dest_dir / "lego_detector.pt.part"
+    log(f"Downloading model from {url} …")
+    try:
+        urllib.request.urlretrieve(url, str(part))
+    except Exception as e:
+        log(f"ERROR: model download failed: {e}")
+        log(f"Manual fallback: download {url} into {dest}")
+        if part.exists():
+            part.unlink()
+        return False
+    part.replace(dest)
+    log("Model downloaded.")
+    return True
+
+
+def start_backend(project_root: Path, log) -> subprocess.Popen:
+    root = Path(project_root)
+    py = venv_python(root)
+    log("Starting IDE server on http://localhost:8000 …")
+    return subprocess.Popen(
+        [str(py), str(root / "backend" / "main.py")],
+        cwd=str(root),
+    )
+
+
+def flash_firmware(project_root: Path, port: str, sketch_path: Path, log) -> bool:
+    sketch_dir = Path(sketch_path).parent
+    cmd = [
+        "arduino-cli", "compile", "--upload",
+        "--fqbn", "esp32:esp32:esp32",
+        "--port", port,
+        str(sketch_dir),
+    ]
+    code = _stream(cmd, log)
+    if code != 0:
+        log("ERROR: flash failed")
+        return False
+    log("Flash complete.")
     return True
