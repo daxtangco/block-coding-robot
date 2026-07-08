@@ -37,3 +37,18 @@ def test_check_arm_reachable_fail_on_closed_port():
     # Port 1 on localhost is virtually never open.
     r = doctor.check_arm_reachable(host="127.0.0.1", port=1, timeout=0.2)
     assert r.status == "fail"
+
+
+def test_check_deps_installed_timeout_maps_to_fail(tmp_path, monkeypatch):
+    import subprocess
+    py = doctor.venv_python(tmp_path)
+    py.parent.mkdir(parents=True)
+    py.write_text("")  # make venv_py.exists() true so we reach subprocess.run
+
+    def fake_run(*a, **k):
+        raise subprocess.TimeoutExpired(cmd="probe", timeout=60)
+    monkeypatch.setattr(doctor.subprocess, "run", fake_run)
+
+    r = doctor.check_deps_installed(tmp_path, py, "os", "Web deps", "hint")
+    assert r.status == "fail"
+    assert "timed out" in r.message

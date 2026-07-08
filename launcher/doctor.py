@@ -67,6 +67,8 @@ def check_deps_installed(project_root: Path, venv_py: Path, import_probe: str,
             [str(venv_py), "-c", f"import {import_probe}"],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=60,
         )
+    except subprocess.TimeoutExpired:
+        return CheckResult("fail", label, f"{label} probe timed out (60 s)", fix_hint)
     except Exception as e:
         return CheckResult("fail", label, f"Could not probe: {e}", fix_hint)
     if r.returncode == 0:
