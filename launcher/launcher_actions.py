@@ -126,12 +126,14 @@ def start_backend(project_root: Path, log) -> subprocess.Popen:
     log_dir.mkdir(parents=True, exist_ok=True)
     log_path = log_dir / "backend.log"
     log("Starting IDE server on http://localhost:8000 …")
-    logf = open(log_path, "w")
-    proc = subprocess.Popen(
-        [str(py), str(root / "backend" / "main.py")],
-        cwd=str(root),
-        stdout=logf, stderr=subprocess.STDOUT,
-    )
+    # The child inherits its own handle, so close the parent copy right
+    # after spawn to avoid leaking (or, on Windows, locking) the file.
+    with open(log_path, "w") as logf:
+        proc = subprocess.Popen(
+            [str(py), str(root / "backend" / "main.py")],
+            cwd=str(root),
+            stdout=logf, stderr=subprocess.STDOUT,
+        )
     # Give the server a moment; if it dies immediately, surface why.
     time.sleep(2)
     if proc.poll() is not None:
