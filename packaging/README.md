@@ -7,7 +7,8 @@ Local build (current OS only):
     pip install pyinstaller
     pyinstaller packaging/launcher.spec
 
-Output: `dist/Block-Robot` (or `Block-Robot.exe` on Windows).
+Run from the repo root; output lands in `./dist/` (relative to CWD):
+`dist/Block-Robot` (or `Block-Robot.exe` on Windows).
 
 The frozen launcher bundles its own Python + Tkinter. It does NOT bundle the
 IDE's heavy deps (torch/ultralytics/opencv) — those install into the project
