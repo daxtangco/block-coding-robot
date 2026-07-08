@@ -17,7 +17,11 @@ def test_download_model_writes_file(tmp_path, monkeypatch):
 
 
 def test_download_model_reports_failure(tmp_path, monkeypatch):
+    # Simulate a download that writes a partial .part file, then fails — this
+    # exercises the cleanup branch (a boom raising before writing would leave
+    # the part.unlink() branch untested).
     def boom(url, filename):
+        Path(filename).write_bytes(b"PARTIAL")
         raise OSError("network down")
     monkeypatch.setattr(la.urllib.request, "urlretrieve", boom)
 
@@ -25,8 +29,9 @@ def test_download_model_reports_failure(tmp_path, monkeypatch):
     ok = la.download_model(tmp_path, log=logs.append, url="http://x/model.pt")
     assert ok is False
     assert any("network down" in ln for ln in logs)
-    # No partial file left behind.
+    # Neither the canonical model nor the partial is left behind.
     assert not (tmp_path / "models" / "lego_detector.pt").exists()
+    assert not (tmp_path / "models" / "lego_detector.pt.part").exists()
 
 
 def test_model_url_is_defined():
