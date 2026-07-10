@@ -69,3 +69,7 @@ runs/
 
 # Launcher runtime logs (backend stdout/stderr captured by start_backend)
 logs/
+
+# Exported WiFi profiles — may embed the WPA2 passphrase, never commit
+*wpa2*.xml
+robotarm_wpa2.xml
