@@ -51,6 +51,10 @@ yolov8n.pt
 yolov8s.pt
 yolov8m.pt
 
+# Exception: the one canonical detection model IS committed (6MB, frozen for
+# the thesis). Everything else *.pt (training scratch, base yolov8) stays out.
+!models/lego_detector.pt
+
 # OS
 .DS_Store
 Thumbs.db
