@@ -6,6 +6,7 @@ actions run on a worker thread and stream into the diagnostics panel via a
 thread-safe queue polled on the Tk main loop.
 """
 import queue
+import shutil
 import sys
 import threading
 import webbrowser
@@ -17,11 +18,56 @@ from tkinter import scrolledtext
 from launcher import doctor, launcher_actions as actions
 
 
+# App source dirs/files bundled into the frozen binary (see packaging/launcher.spec).
+# On first run they're copied out of PyInstaller's read-only _MEIPASS into a
+# writable project root so the launcher can build .venv, install deps, and run
+# the server there.
+_BUNDLED = ["backend", "frontend", "config.py", "sorting_logic.py",
+            "requirements-vision.txt", "models"]
+
+
 def project_root() -> Path:
-    # When frozen, resources sit beside the executable; else repo root (../).
+    # When frozen, the binary is self-contained: the app source is bundled and
+    # extracted to a writable per-user dir (the executable's own folder may be
+    # read-only, e.g. /Applications or a DMG). When running from source, use the
+    # repo root (../).
     if getattr(sys, "frozen", False):
-        return Path(sys.executable).resolve().parent
+        return Path.home() / "BlockRobot"
     return Path(__file__).resolve().parents[1]
+
+
+def bundle_dir() -> Path:
+    """Where PyInstaller extracted bundled data (_MEIPASS), else the repo root."""
+    meipass = getattr(sys, "_MEIPASS", None)
+    if meipass:
+        return Path(meipass)
+    return Path(__file__).resolve().parents[1]
+
+
+def ensure_app_source(root: Path, log) -> None:
+    """First-run bootstrap: copy bundled app source into the writable root.
+
+    Idempotent — only copies items that aren't already present, so a user's
+    existing .venv/settings/programs under root are never clobbered. No-op when
+    not frozen (the repo already has everything).
+    """
+    if not getattr(sys, "frozen", False):
+        return
+    src = bundle_dir()
+    root.mkdir(parents=True, exist_ok=True)
+    for name in _BUNDLED:
+        dest = root / name
+        if dest.exists():
+            continue
+        origin = src / name
+        if not origin.exists():
+            continue
+        log(f"Installing {name} → {dest}")
+        if origin.is_dir():
+            shutil.copytree(origin, dest)
+        else:
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(origin, dest)
 
 
 class LauncherApp:
@@ -94,12 +140,14 @@ class LauncherApp:
 
     def on_setup(self):
         def work():
+            ensure_app_source(self.proj, self._log)  # frozen: materialize bundled source
             actions.run_setup(self.proj, self._log)
             self.root.after(0, self.on_check)  # dispatch back to main thread
         self._run_bg(work)
 
     def on_start(self):
         def work():
+            ensure_app_source(self.proj, self._log)  # frozen: ensure source exists
             results = doctor.run_checks(self.proj, include_flash=False)
             if not doctor.all_ok(results):
                 fail = doctor.first_failure(results)
@@ -136,7 +184,30 @@ class LauncherApp:
         self._run_bg(work)
 
 
+def run_headless(do_start: bool) -> int:
+    """Run the bootstrap + setup path with no GUI (for CI / clean-room tests).
+
+    Mirrors what the Setup (and optionally Start) buttons do, streaming to
+    stdout. Returns a process exit code: 0 on success, non-zero on failure.
+    """
+    root = project_root()
+    ensure_app_source(root, print)
+    ok = actions.run_setup(root, print)
+    if not ok:
+        return 1
+    if do_start:
+        proc = actions.start_backend(root, print)
+        if proc.poll() is not None:
+            return 1
+        print(f"IDE server started (pid {proc.pid}). Stopping (headless smoke test).")
+        proc.terminate()
+    return 0
+
+
 def main():
+    argv = sys.argv[1:]
+    if "--setup" in argv or "--check" in argv:
+        sys.exit(run_headless(do_start="--start" in argv))
     root = tk.Tk()
     LauncherApp(root)
     root.mainloop()
