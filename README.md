@@ -35,14 +35,20 @@ computer figures out what's in it, and the arm acts on the result.
 
 ## Easiest install (no terminal)
 
+> **One thing to install first: Python 3.8+.** The launcher sets everything
+> else up for you, but it needs Python already on your computer to do it. Get
+> it from [python.org/downloads](https://www.python.org/downloads/) (on the
+> installer, tick **"Add Python to PATH"**). If you skip this, the launcher's
+> first check shows ❌ Python and tells you the same thing.
+
 1. Go to the [latest release](https://github.com/daxtangco/block-coding-robot/releases/latest)
    and download the file for your computer:
    - Windows: `Block-Robot.exe`
    - macOS: `Block-Robot` (right-click → Open the first time)
-   - Linux: `Block-Robot` (mark executable, then run)
-2. Double-click it. The launcher window opens.
-3. Click **⚙️ Set up / update** once and wait — it installs everything and
-   downloads the detection model.
+2. Double-click it. The launcher window opens. (The app and the detection
+   model are bundled inside — no separate download needed.)
+3. Click **⚙️ Set up / update** once and wait — it builds a Python environment
+   and installs the packages the IDE needs.
 4. Click **▶ Start IDE**. Your browser opens the IDE.
 
 If a row shows ❌, the launcher tells you exactly what to do (for example,
