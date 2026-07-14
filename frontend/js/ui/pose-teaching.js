@@ -1,17 +1,18 @@
 // Pose teaching interface
 import { fetchPoses, savePose, deletePose } from '../api.js';
-import { connectRobot, sendServo, isConnected, onRobotMessage } from './robot-link.js';
+import { connectRobot, sendServo, isConnected, onRobotMessage,
+         GRIPPER_CH, GRIPPER_OPEN,
+         GRIPPER_CLOSE_NARROW, GRIPPER_CLOSE_WIDE } from './robot-link.js';
 
 let currentPoses = {};
 
 // Slider order maps to firmware servo channels: base=0 … wrist=3. The gripper
-// (channel 4) is open/close buttons, not a slider — see GRIPPER_* below.
+// (channel 4) is open/close buttons, not a slider — GRIPPER_* come from
+// robot-link.js so this tab, the program runner, and the firmware all agree.
 const SLIDER_SERVOS = ['base', 'shoulder', 'elbow', 'wrist'];
-const GRIPPER_CH = 4;
-const GRIPPER_OPEN = 90;
-const GRIPPER_CLOSE = 0;
-// Current gripper state the user has chosen via the buttons; saved into poses.
-let gripperAngle = GRIPPER_CLOSE;
+// Current gripper state the user has chosen via the buttons. Default to the
+// wide close so a manual grip never stalls on an unknown piece.
+let gripperAngle = GRIPPER_CLOSE_WIDE;
 
 const SEND_INTERVAL = 50;          // throttle slider output (ms)
 const lastSent = [0, 0, 0, 0, 0];
@@ -72,19 +73,24 @@ export async function initPoseTeaching() {
         });
     });
 
-    // Gripper open/close buttons. The geared jaws have a narrow usable arc, so
-    // it's open/close only — driving arbitrary angles jams the linkage.
+    // Gripper buttons: Open, Close (narrow) and Close (wide). The jaws have a
+    // narrow usable arc, so it's preset angles only — arbitrary angles jam the
+    // linkage. Two close presets let you hand-test both grip widths: narrow
+    // grips thin 1-stud pieces firmly; wide stops short so the servo doesn't
+    // stall against a thick 2-stud piece (which would starve the shoulder).
     const gripOpenBtn = document.getElementById('pose-grip-open');
-    const gripCloseBtn = document.getElementById('pose-grip-close');
+    const gripCloseNarrowBtn = document.getElementById('pose-grip-close-narrow');
+    const gripCloseWideBtn = document.getElementById('pose-grip-close-wide');
     function setGripper(angle) {
         gripperAngle = angle;
-        const open = angle === GRIPPER_OPEN;
-        gripOpenBtn.classList.toggle('active', open);
-        gripCloseBtn.classList.toggle('active', !open);
+        gripOpenBtn.classList.toggle('active', angle === GRIPPER_OPEN);
+        gripCloseNarrowBtn.classList.toggle('active', angle === GRIPPER_CLOSE_NARROW);
+        gripCloseWideBtn.classList.toggle('active', angle === GRIPPER_CLOSE_WIDE);
         if (wsConnected()) sendServo(GRIPPER_CH, angle);
     }
     gripOpenBtn.addEventListener('click', () => setGripper(GRIPPER_OPEN));
-    gripCloseBtn.addEventListener('click', () => setGripper(GRIPPER_CLOSE));
+    gripCloseNarrowBtn.addEventListener('click', () => setGripper(GRIPPER_CLOSE_NARROW));
+    gripCloseWideBtn.addEventListener('click', () => setGripper(GRIPPER_CLOSE_WIDE));
 
     // Save pose button
     document.getElementById('save-pose-btn').addEventListener('click', async () => {
