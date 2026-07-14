@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thesis Defense — Block Robot (RIAL-3-2526-C7)</title>
+
+<!-- reveal.js from CDN (needs internet the first time; then browser-cached) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css" id="theme">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/monokai.css">
+
+<style>
+  :root { --accent:#7c9cff; --accent2:#22d3aa; --warn:#f59e0b; --good:#22d3aa; }
+  .reveal { font-size: 30px; }
+  .reveal h1 { font-size: 1.7em; color: var(--accent); }
+  .reveal h2 { color: var(--accent); font-size: 1.22em; margin-bottom: .35em; }
+  .reveal h3 { color: var(--accent2); font-size: .95em; }
+  .reveal section { text-align: left; }
+  .reveal .center { text-align: center; }
+  .reveal table { font-size: .58em; margin: 0 auto; }
+  .reveal table th { color: var(--accent2); border-bottom: 2px solid var(--accent); }
+  .reveal table td, .reveal table th { padding: 4px 12px; }
+  .reveal .small { font-size: .68em; }
+  .reveal .tiny { font-size: .5em; color:#9aa4b2; }
+  .reveal .tag { display:inline-block; background:#1e293b; color:var(--accent2);
+                 border:1px solid #334155; border-radius:6px; padding:2px 10px;
+                 font-size:.55em; margin:2px; }
+  .reveal .flow { display:flex; justify-content:space-between; gap:14px; margin-top:.4em; }
+  .reveal .flow .box { flex:1; background:#0f172a; border:1px solid #334155;
+                       border-radius:10px; padding:14px; text-align:center; font-size:.62em; }
+  .reveal .flow .box b { color:var(--accent2); display:block; font-size:1.15em; margin-bottom:4px; }
+  .reveal .arrow { align-self:center; color:var(--accent); font-size:1.4em; }
+  .reveal .two { display:flex; gap:26px; }
+  .reveal .two > div { flex:1; }
+  .reveal .kpi { display:flex; flex-wrap:wrap; gap:12px; justify-content:center; }
+  .reveal .kpi .k { background:#0f172a; border:1px solid #334155; border-radius:10px;
+                    padding:12px 18px; min-width:140px; text-align:center; }
+  .reveal .kpi .k b { color:var(--good); font-size:1.5em; display:block; }
+  .reveal .kpi .k span { font-size:.5em; color:#9aa4b2; }
+  .reveal em.q { color:var(--accent2); font-style:normal; }
+  .reveal .ok { color:var(--good); font-weight:bold; }
+  .reveal ul { margin-left: .6em; }
+  .reveal .footer { position:fixed; bottom:8px; left:14px; font-size:12px; color:#475569; }
+  .reveal pre { width:100%; font-size:.5em; box-shadow:none; }
+</style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<!-- 1 · TITLE -->
+<section data-background-gradient="linear-gradient(180deg,#0b1220,#111a2e)">
+  <h1 style="margin-bottom:.15em;">Block Robot</h1>
+  <p class="center small" style="color:#cbd5e1;">Development of a Cost-Effective 3D-Printed Pick-and-Place Robotic Arm<br>
+     for Object Sorting and Educational Applications</p>
+  <p class="center tiny" style="margin-top:.9em;">DLSU · Dept. of Electronics &amp; Computer Engineering · BS Computer Engineering · <b>RIAL-3-2526-C7</b></p>
+  <p class="center tiny">Adriano, A.G. · Cabral, J.C. · Lin, C.S. · Tangco, D.A. &nbsp;—&nbsp; June 2026</p>
+  <p class="center" style="margin-top:.6em;"><span class="tag">Program by snapping blocks</span>
+     <span class="tag">Teachable vision</span>
+     <span class="tag">Works fully offline</span></p>
+  <aside class="notes">
+    Open: we built a low-cost, 3D-printed 5-DOF robotic arm for secondary-school
+    robotics education. Students program it by dragging blocks, it sees objects with
+    a camera, and sorts them. Guiding idea: the camera SEES, the PC THINKS, the arm ACTS.
+  </aside>
+</section>
+
+<!-- 2 · ONE SENTENCE -->
+<section data-background-color="#0b1220">
+  <h2>In one sentence</h2>
+  <p class="center" style="font-size:1.12em; margin-top:.5em;">
+    The camera <em class="q">sees</em>, the PC <em class="q">thinks</em>,
+    and the arm <em class="q">acts</em>.
+  </p>
+  <div class="flow">
+    <div class="box"><b>SEES</b> ESP32-CAM (or laptop webcam) captures a frame</div>
+    <div class="arrow">→</div>
+    <div class="box"><b>THINKS</b> YOLOv8n on the PC detects &amp; classifies the piece</div>
+    <div class="arrow">→</div>
+    <div class="box"><b>ACTS</b> ESP32 arm moves over WebSocket to sort it</div>
+  </div>
+  <p class="tiny center" style="margin-top:.9em;">Each capability lives on the device best suited to it — a deliberate split.</p>
+  <aside class="notes">
+    Why split it? The ESP32 is too weak for a neural net; the laptop can't ride a moving
+    arm. Vision on the PC, motion on the microcontroller, talking over the arm's own WiFi.
+  </aside>
+</section>
+
+<!-- 3 · PROBLEM / MOTIVATION -->
+<section data-background-color="#0b1220">
+  <h2>The problem</h2>
+  <ul class="small">
+    <li><b>Cost &amp; access</b> — commercial educational arms start around <b>PHP 8,500–17,000+</b>, out of reach for many schools.</li>
+    <li><b>Programming barrier</b> — most platforms need real coding; beginners can't start.</li>
+    <li><b>Rigid perception</b> — fixed object sets; students can't teach it <em class="q">their own</em> objects.</li>
+    <li><b>Infrastructure</b> — many depend on home WiFi or cloud accounts, awkward in class.</li>
+  </ul>
+  <h3 style="margin-top:.5em;">Our answer</h3>
+  <p class="small">A <b>3D-printed</b>, hobby-servo <b>5-DOF arm</b> + a <b>block-coding IDE</b> + <b>YOLOv8 vision</b> +
+     a <b>Grade 7–10 curriculum</b>, running <b>fully offline</b> on the robot's own WiFi — built for
+     <b>≤ PHP 3,500</b>.</p>
+  <aside class="notes">
+    The PHP 8,500 / 17,000 figures are the real commercial comparators from Table 6.5
+    (LEWANSOUL xArm 1S and Dobot Magician Lite). Our cost ceiling target was PHP 3,500 (SO1).
+  </aside>
+</section>
+
+<!-- 4 · OBJECTIVES -->
+<section data-background-color="#0b1220">
+  <h2>Objectives</h2>
+  <p class="small"><b>GO:</b> a low-cost, modular 3D-printed <b>5-DOF</b> pick-and-place arm for object
+     sorting in secondary education — manual control + automated detection + a grade-level curriculum.</p>
+  <table>
+    <tr><th>#</th><th>Specific objective</th><th>Target</th></tr>
+    <tr><td>SO1</td><td>Cost-effective modular 3D-printed arm</td><td>Total cost ≤ PHP 3,500</td></tr>
+    <tr><td>SO2</td><td>Manual control + automated object detection</td><td>mAP ≥ 70.0, responsive UI</td></tr>
+    <tr><td>SO3</td><td>Optimized sorting &amp; motion control</td><td>≥ 90% pick-and-place success</td></tr>
+    <tr><td>SO4</td><td>Structured lesson manual</td><td>Grade 7–10 progression</td></tr>
+    <tr><td>SO5</td><td>Assess educational impact with students</td><td>Surveys + guided unit tests</td></tr>
+  </table>
+  <aside class="notes">
+    Read the five SOs verbatim-ish; these are the exact targets from Chapter 1. The next
+    slide shows we met all five — that's the spine of the defense.
+  </aside>
+</section>
+
+<!-- 5 · RESULTS DASHBOARD (headline) -->
+<section data-background-gradient="linear-gradient(180deg,#0b1220,#0f2a22)">
+  <h2 class="center">Results — all five objectives met</h2>
+  <div class="kpi" style="margin-top:.5em;">
+    <div class="k"><b>PHP 3,116</b><span>SO1 cost — 89% of the ≤3,500 target</span></div>
+    <div class="k"><b>98.8%</b><span>SO2 mAP@0.5 — target was 70.0</span></div>
+    <div class="k"><b>92.5%</b><span>SO3 pick-&amp;-place — target ≥90%</span></div>
+    <div class="k"><b>4 modules</b><span>SO4 Grade 7–10 manual</span></div>
+    <div class="k"><b>SUS 71.3</b><span>SO5 usability — "Good" (&gt;68)</span></div>
+  </div>
+  <p class="center small" style="margin-top:.8em;">Every target was met or exceeded — most by a wide margin.</p>
+  <aside class="notes">
+    This is your headline slide — from Table 6.1, Mapping of Results to Specific Objectives.
+    Say plainly: "We met all five objectives." Then the following slides give the evidence
+    behind each number. If time is short, this + BOM + detection + success rate is the core.
+  </aside>
+</section>
+
+<!-- 6 · SYSTEM ARCHITECTURE -->
+<section data-background-color="#0b1220">
+  <h2>System architecture — three tiers</h2>
+  <table>
+    <tr><th>Tier</th><th>Runs on</th><th>Responsibility</th></tr>
+    <tr><td><b>1 · IDE + Brain</b></td><td>Laptop (browser + FastAPI @ localhost:8000)</td>
+        <td>Blockly IDE, YOLOv8 inference, training, firmware build/flash</td></tr>
+    <tr><td><b>2 · Arm controller</b></td><td>ESP32 (WiFi access point)</td>
+        <td>Serves control page, drives 5 servos via PCA9685, WebSocket motion</td></tr>
+    <tr><td><b>3 · Camera</b> <span class="tiny">(optional)</span></td><td>ESP32-CAM (OV2640)</td>
+        <td>Streams JPEG frames; auto-joins the arm's network</td></tr>
+  </table>
+  <div class="flow" style="margin-top:.7em;">
+    <div class="box">Laptop / Browser<br><span class="tiny">Blockly · YOLOv8 · FastAPI</span></div>
+    <div class="arrow">⇄ WS/HTTP</div>
+    <div class="box">ESP32 Arm<br><span class="tiny">AP · PCA9685 · WebSocket</span></div>
+    <div class="arrow">⇄ WiFi</div>
+    <div class="box">ESP32-CAM<br><span class="tiny">/capture · /stream</span></div>
+  </div>
+  <aside class="notes">
+    The arm is the WiFi access point (SSID RobotArm-XXXX from its MAC). Laptop/phone AND
+    the camera join THAT network. 192.168.4.1 = arm; camera auto-takes 192.168.4.50.
+    No home WiFi, no cloud — this is what makes it classroom-deployable (SO addressed in 6.6).
+  </aside>
+</section>
+
+<!-- 7 · HARDWARE / BUILD -->
+<section data-background-color="#0b1220">
+  <h2>The hardware</h2>
+  <div class="two small">
+    <div>
+      <ul>
+        <li><b>5-DOF</b>: base, shoulder, elbow, wrist, gripper</li>
+        <li>Open-source Thingiverse design (thing:3039476)</li>
+        <li><b>12 printed parts</b>, Esun <b>PLA+</b> @ 20% infill</li>
+        <li>Base/shoulder/elbow: <b>MG996R</b> servos ×3</li>
+        <li>Wrist/gripper: <b>MG90S</b> micro servos ×2</li>
+        <li><b>PCA9685</b> 16-ch PWM driver (I²C: SDA 21 / SCL 22)</li>
+        <li>Dedicated <b>5V/3A</b> supply — servos isolated from ESP32</li>
+      </ul>
+    </div>
+    <div>
+      <p><b>Why a separate servo driver + supply?</b></p>
+      <p class="tiny">Offloading PWM to the PCA9685 frees the ESP32; isolating servo power
+         on its own 5V/3A rail stopped current surges from resetting the board (see the
+         optimization log). Per-joint travel caps <code>{180,180,180,90,90}</code> keep every
+         servo inside its mechanical range.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    Exact from Chapter 5/6: MG996R (metal-gear standard) for the three heavy joints,
+    MG90S for wrist and gripper. Do NOT say SG90 — the paper specifies MG996R + MG90S.
+    The isolated 5V/3A rail and PCA9685 offload are both documented fixes, not decoration.
+  </aside>
+</section>
+
+<!-- 8 · BOM / COST (SO1) -->
+<section data-background-color="#0b1220">
+  <h2>Bill of materials — SO1 <span class="ok">✓ PHP 3,116</span></h2>
+  <div class="two">
+    <div>
+      <table style="font-size:.52em;">
+        <tr><th>Item</th><th>Qty</th><th>PHP</th></tr>
+        <tr><td>3D printing filament (1 kg PLA+)</td><td>1</td><td>685</td></tr>
+        <tr><td>ESP32 DevKit V1</td><td>1</td><td>350</td></tr>
+        <tr><td>MG996R standard servo</td><td>3</td><td>750</td></tr>
+        <tr><td>MG90S micro servo</td><td>2</td><td>230</td></tr>
+        <tr><td>PCA9685 servo driver</td><td>1</td><td>250</td></tr>
+        <tr><td>ESP32-CAM + serial board</td><td>1</td><td>550</td></tr>
+        <tr><td>Jumper wires</td><td>50</td><td>70</td></tr>
+        <tr><td>Screws</td><td>35</td><td>90</td></tr>
+        <tr><td>DC adapter (5V 3A)</td><td>1</td><td>129</td></tr>
+        <tr><td>Female barrel jack</td><td>1</td><td>12</td></tr>
+        <tr><td><b>Total</b></td><td></td><td><b class="ok">3,116</b></td></tr>
+      </table>
+    </div>
+    <div class="small">
+      <p><b>vs. commercial (Table 6.5)</b></p>
+      <table style="font-size:.5em;">
+        <tr><th>System</th><th>PHP</th><th>DOF</th><th>Vision</th></tr>
+        <tr><td><b>This study</b></td><td><b class="ok">3,116</b></td><td>5</td><td>Yes</td></tr>
+        <tr><td>LEWANSOUL xArm 1S</td><td>~8,500</td><td>6</td><td>No</td></tr>
+        <tr><td>Dobot Magician Lite</td><td>~17,000</td><td>4</td><td>No</td></tr>
+      </table>
+      <p class="tiny" style="margin-top:.6em;">~63–82% cheaper than commercial arms — and the only one with built-in vision.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    This is the answer to "how much did it cost?" — PHP 3,116, from your Actual BOM
+    (Table 6.4), 89% of the PHP 3,500 ceiling. The comparison table (6.5) is your
+    strongest cost-effectiveness argument: cheaper AND the only vision-capable one.
+  </aside>
+</section>
+
+<!-- 9 · THE 5-TAB IDE -->
+<section data-background-color="#0b1220">
+  <h2>The IDE — five tabs, one browser page</h2>
+  <table>
+    <tr><th>Tab</th><th>What the student does</th></tr>
+    <tr><td>⚙️ <b>Setup</b></td><td>Name the robot's WiFi, build &amp; flash firmware</td></tr>
+    <tr><td>🎯 <b>Teach Poses</b></td><td>Move the real arm with sliders, save named positions</td></tr>
+    <tr><td>📦 <b>Program</b></td><td>Snap blocks together; watch generated code live</td></tr>
+    <tr><td>📷 <b>Vision</b></td><td>Point a camera, see detections + which bin each goes to</td></tr>
+    <tr><td>🎓 <b>Train Model</b></td><td>Teach the computer to recognize your own objects</td></tr>
+  </table>
+  <p class="tiny center" style="margin-top:.7em;">Frontend: Blockly + vanilla JS — no framework, no build step.</p>
+  <aside class="notes">
+    Demo hook: if a live demo is allowed, switch to the actual IDE here — the Program tab
+    shows blocks becoming code in real time. Screenshots are Figs 6.3–6.6 in the paper.
+  </aside>
+</section>
+
+<!-- 10 · BLOCK CODING + MANUAL CONTROL (SO2 part 1) -->
+<section data-background-color="#0b1220">
+  <h2>Block-coding &amp; manual control — SO2 <span class="ok">✓</span></h2>
+  <div class="two">
+    <div class="small">
+      <p>Blocks snap like LEGO, type-checked by shape:</p>
+      <p><span class="tag">move to pose</span><span class="tag">open/close claw</span><span class="tag">wait</span></p>
+      <p><span class="tag">camera sees…</span><span class="tag">forever</span><span class="tag">if / else</span></p>
+      <p class="tiny">Manual UI: ESP32 hosts an embedded page at <b>192.168.4.1</b> — five joint
+         sliders + Manual/Auto + Reset, over <b>WebSocket</b> (persistent, no per-request HTTP).
+         Latency is bounded only by the local WiFi link — no cloud hop.</p>
+      <p class="tiny">Two run modes: compile to C++ &amp; flash, OR run live in the browser
+         (interpreter drives the arm over the same WebSocket — instant iteration).</p>
+    </div>
+    <div>
+<pre><code class="language-text">forever
+  if camera sees "brick_2x4"
+     with confidence > 50%
+    move arm to pose PICKUP
+    close gripper
+    wait 1 second
+    move arm to pose DROP_ZONE
+    open gripper</code></pre>
+    </div>
+  </div>
+  <aside class="notes">
+    Browser-runner is a genuine contribution: normally a block change = recompile + reflash
+    (slow). Our JS interpreter walks the live blocks and streams servo commands over the
+    same WebSocket, so iteration is instant. Also note we dropped Blynk entirely — no cloud.
+  </aside>
+</section>
+
+<!-- 11 · DETECTION RESULTS (SO2 part 2) -->
+<section data-background-color="#0b1220">
+  <h2>Object detection — SO2 <span class="ok">✓ 98.8% mAP@0.5</span></h2>
+  <div class="two small">
+    <div>
+      <ul class="tiny">
+        <li>Dataset: <b>spiled-lego-bricks</b> (Kaggle) — 3,031 imgs, 9,596 annotations, 70/15/15</li>
+        <li>Model: <b>YOLOv8n</b>, two-stage (100 ep freeze-10 → 50 ep fine-tune)</li>
+        <li>Trained on Tesla T4 (Colab), ~2–4 h</li>
+        <li><b>6 classes</b>, all &gt; 98% AP@0.5</li>
+        <li>Speed: <b>~8.1 ms/frame ≈ 123 FPS</b> (T4)</li>
+      </ul>
+      <div class="kpi" style="justify-content:flex-start; margin-top:.4em;">
+        <div class="k"><b>98.8%</b><span>overall mAP@0.5 (target 70.0)</span></div>
+        <div class="k"><b>95.7%</b><span>mAP@0.5:0.95</span></div>
+      </div>
+    </div>
+    <div>
+      <table style="font-size:.5em;">
+        <tr><th>Class</th><th>P</th><th>R</th><th>AP@.5</th></tr>
+        <tr><td>brick_1x6</td><td>.983</td><td>.989</td><td>99.4</td></tr>
+        <tr><td>brick_2x2</td><td>.946</td><td>.961</td><td>98.3</td></tr>
+        <tr><td>brick_2x4</td><td>.953</td><td>.949</td><td>98.7</td></tr>
+        <tr><td>plate_1x2</td><td>.968</td><td>.939</td><td>98.2</td></tr>
+        <tr><td>plate_2x2</td><td>.943</td><td>.946</td><td>98.7</td></tr>
+        <tr><td>plate_2x4</td><td>.959</td><td>.987</td><td>99.3</td></tr>
+        <tr><td><b>Overall</b></td><td><b>.959</b></td><td><b>.962</b></td><td><b>98.8</b></td></tr>
+      </table>
+    </div>
+  </div>
+  <p class="tiny center">Beat the 70.0 target by <b>28.8 points</b>. CORS proxy forwards cam frames to the browser; YOLO runs on the PC (ESP32-CAM only supplies JPEGs).</p>
+  <aside class="notes">
+    All exact from Tables 6.6 / 6.7. The honest nuance if pushed: 98.8% is on the held-out
+    TEST split of the Kaggle dataset (456 images) — clean, well-lit. Real-world sorting
+    (next slide) is where lighting bit us. Speed 123 FPS is on the T4 GPU, not the classroom laptop.
+  </aside>
+</section>
+
+<!-- 12 · PICK-AND-PLACE (SO3) -->
+<section data-background-color="#0b1220">
+  <h2>Pick-and-place — SO3 <span class="ok">✓ 92.5%</span></h2>
+  <div class="two small">
+    <div>
+      <p>120 automated trials (20 × 6 categories). Success = detected, lifted cleanly,
+         released within a 10 mm target zone.</p>
+      <div class="kpi" style="justify-content:flex-start;">
+        <div class="k"><b>41.7%</b><span>before optimization (50/120)</span></div>
+        <div class="k"><b>92.5%</b><span>after (111/120) — <span class="ok">+50.8 pts</span></span></div>
+      </div>
+      <p class="tiny" style="margin-top:.5em;">All 6 categories ≥ 90% (bricks 95%, plates 90%).
+         <b>All 9 remaining failures were detection errors — zero mechanical failures</b>
+         across 111 successful trials.</p>
+    </div>
+    <div>
+      <table style="font-size:.52em;">
+        <tr><th>Category</th><th>OK/20</th><th>%</th></tr>
+        <tr><td>brick_1x6</td><td>19</td><td>95</td></tr>
+        <tr><td>brick_2x2</td><td>19</td><td>95</td></tr>
+        <tr><td>brick_2x4</td><td>19</td><td>95</td></tr>
+        <tr><td>plate_1x2</td><td>18</td><td>90</td></tr>
+        <tr><td>plate_2x2</td><td>18</td><td>90</td></tr>
+        <tr><td>plate_2x4</td><td>18</td><td>90</td></tr>
+        <tr><td><b>Total</b></td><td><b>111</b></td><td><b>92.5</b></td></tr>
+      </table>
+    </div>
+  </div>
+  <aside class="notes">
+    This is the strongest engineering story: a jump from 41.7% to 92.5% purely from the
+    documented firmware/power/vision fixes (next slide). The "zero mechanical failures"
+    line is powerful — it proves the motion optimizations fully worked, and the only
+    remaining gap is vision under classroom lighting.
+  </aside>
+</section>
+
+<!-- 13 · ENGINEERING CHALLENGES (the optimization log) -->
+<section data-background-color="#0b1220">
+  <h2>How we got there — the optimization log</h2>
+  <table>
+    <tr><th>Problem</th><th>Fix</th><th>Outcome</th></tr>
+    <tr><td>Servos buzz/jam into end-stops; MG996R overheats (~2.5 A stall)</td>
+        <td>Narrowed PWM range 100–500 → 150–450 counts</td><td>No end-stop stalling; rail stopped sagging</td></tr>
+    <tr><td>All 5 servos start at once → ground bounce → board resets</td>
+        <td>Move one joint per tick (serialized slewer)</td><td>Resets eliminated</td></tr>
+    <tr><td>Gripper stalls on object → starves shoulder</td>
+        <td>Close angle set safely (not 0°); travel capped</td><td>Shoulder lifts freely; no brownout</td></tr>
+    <tr><td>Servo spikes couple into ESP32 logic rail</td>
+        <td>Separate 5V/3A servo supply via PCA9685 V+</td><td>No further spurious resets</td></tr>
+    <tr><td>Browser blocks direct cam fetch (CORS)</td>
+        <td>Backend /capture proxy (+ server-side rotate)</td><td>Frames &amp; boxes align, no CORS errors</td></tr>
+  </table>
+  <aside class="notes">
+    This is Table 6.8 condensed — the "we actually engineered this" slide. IMPORTANT honesty:
+    the gripper fix is an ANGLE + travel-cap strategy (set close angle so the servo reaches
+    target instead of stalling), NOT electrical current sensing. There is no ADC on the servo
+    line. If asked "how do you detect a stall?" — we don't measure current; we avoid commanding
+    a stalling angle. The ~2.5 A figure is the MG996R's stall current we observed, not a live reading.
+  </aside>
+</section>
+
+<!-- 14 · TEACHABLE MODE -->
+<section data-background-color="#0b1220">
+  <h2>Teachable objects — beyond the 6 classes</h2>
+  <div class="two small">
+    <div>
+      <p>Students teach the robot <em class="q">their own</em> objects in seconds:</p>
+      <ul class="tiny">
+        <li>Frozen <b>MobileNetV2</b> backbone (ONNX / onnxruntime)</li>
+        <li>Each frame → <b>1280-dim embedding</b></li>
+        <li>Tiny <b>logistic-regression</b> head, trained on CPU in <b>&lt;1 s</b></li>
+        <li><b>No annotation, no GPU, no Colab</b></li>
+      </ul>
+    </div>
+    <div class="flow" style="flex-direction:column; gap:8px;">
+      <div class="box">Show object to camera</div>
+      <div class="box">MobileNetV2 → embedding</div>
+      <div class="box">Fit logistic head (&lt;1 s)</div>
+      <div class="box">Robot recognizes it live</div>
+    </div>
+  </div>
+  <p class="tiny center">Complements YOLO: YOLO = fixed high-accuracy 6-class detector; teachable = arbitrary single-object classifier.</p>
+  <aside class="notes">
+    Real and implemented (backend/services/teachable.py). Honest limitation: it classifies
+    the dominant object; it doesn't localize multiple objects like YOLO. Great "extensibility"
+    talking point for the educational goal — kids teach it coins, their own bricks, etc.
+  </aside>
+</section>
+
+<!-- 15 · EDUCATION (SO4 + SO5) -->
+<section data-background-color="#0b1220">
+  <h2>Educational impact — SO4 &amp; SO5 <span class="ok">✓</span></h2>
+  <div class="two small">
+    <div>
+      <p><b>SO4 — curriculum</b></p>
+      <ul class="tiny">
+        <li>Four-module manual, <b>Grade 7 → 10</b> progression</li>
+        <li>Covers hardware, programming, and automation</li>
+        <li>Step-by-step experiments &amp; guided unit tests</li>
+      </ul>
+    </div>
+    <div>
+      <p><b>SO5 — student evaluation</b></p>
+      <div class="kpi" style="justify-content:flex-start;">
+        <div class="k"><b>71.3</b><span>SUS — "Good", above ~68 benchmark</span></div>
+        <div class="k"><b>90%</b><span>of 40 students reported more STEM interest</span></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    From Table 6.1 / §6.7–6.8. SUS = System Usability Scale; 71.3 is above the ~68 industry
+    average, so "Good." 40 students participated; 90% reported increased STEM interest. If
+    asked about study design, be ready with how the survey/unit tests were administered (Ch. 5).
+  </aside>
+</section>
+
+<!-- 16 · DEPLOYMENT / LAUNCHER -->
+<section data-background-color="#0b1220">
+  <h2>Deployment — one launcher, any OS</h2>
+  <div class="two small">
+    <div>
+      <ul>
+        <li>Single download: <b>Block-Robot</b> (Win / macOS / Linux)</li>
+        <li>App + detection model <b>bundled inside</b> the binary</li>
+        <li><b>🩺 Doctor</b> checks Python, venv, deps, model, arm, camera live</li>
+        <li>One click builds the venv, installs deps, starts the IDE</li>
+        <li><b>🔧 Install robot tools</b>: arduino-cli + ESP32 core + libraries, resume-on-slow-download</li>
+      </ul>
+    </div>
+    <div class="kpi" style="flex-direction:column;">
+      <div class="k"><b>3</b><span>operating systems</span></div>
+      <div class="k"><b>1</b><span>file to download</span></div>
+      <div class="k"><b>0</b><span>terminal commands (happy path)</span></div>
+    </div>
+  </div>
+  <aside class="notes">
+    Usability contribution for non-technical teachers: PyInstaller frozen binary, Tkinter GUI,
+    self-diagnosing. Honest caveat: needs Python 3.8+ present; flashing hardware uses arduino-cli
+    underneath (which the launcher installs for you).
+  </aside>
+</section>
+
+<!-- 17 · TECH STACK -->
+<section data-background-color="#0b1220">
+  <h2>Technology stack</h2>
+  <table>
+    <tr><th>Layer</th><th>Tech</th></tr>
+    <tr><td>Frontend</td><td>Blockly (visual blocks) · vanilla JS · HTML/CSS · PWA</td></tr>
+    <tr><td>Backend</td><td>FastAPI · Uvicorn · Pydantic · httpx (async proxy)</td></tr>
+    <tr><td>Vision / ML</td><td>Ultralytics <b>YOLOv8 (8.4.47)</b> · OpenCV · MobileNetV2 (ONNX) · scikit-learn</td></tr>
+    <tr><td>Firmware</td><td>ESP32 Arduino · ESPAsyncWebServer · Adafruit PCA9685 · ArduinoJson</td></tr>
+    <tr><td>Build / ship</td><td>arduino-cli · PyInstaller · Web Serial (USB flash)</td></tr>
+  </table>
+  <aside class="notes">
+    YOLOv8 8.4.47 is exact (requirements-vision.txt). "Why YOLOv8n?" — real-time on CPU,
+    matches the low-cost/edge goal; larger models were optional but overkill for 6 classes.
+  </aside>
+</section>
+
+<!-- 18 · CONTRIBUTIONS -->
+<section data-background-color="#0b1220">
+  <h2>Contributions</h2>
+  <ul class="small">
+    <li><b>Cost-effective, vision-capable 5-DOF arm at PHP 3,116</b> — cheaper than commercial arms that lack built-in vision.</li>
+    <li><b>Block-coding IDE ↔ real hardware</b>, with a browser interpreter for instant iteration (no re-flash loop).</li>
+    <li><b>98.8% mAP detection + 92.5% real sorting</b>, via a documented firmware/power/vision optimization pipeline.</li>
+    <li><b>Teachable object detection</b> on commodity CPU — no annotation/GPU/cloud.</li>
+    <li><b>Fully offline architecture</b> + <b>one-click cross-platform launcher</b> for classroom use.</li>
+    <li><b>Grade 7–10 curriculum</b> validated with students (SUS 71.3).</li>
+  </ul>
+  <aside class="notes">
+    The "what's genuinely new / hard" list, each mapped to evidence you can open on demand.
+  </aside>
+</section>
+
+<!-- 19 · LIMITATIONS -->
+<section data-background-color="#0b1220">
+  <h2>Limitations &amp; honest trade-offs</h2>
+  <table>
+    <tr><th>Limitation</th><th>Why / mitigation</th></tr>
+    <tr><td>Remaining failures are vision, not mechanical</td><td>Camera image quality + lighting; detection robustness is the main future target</td></tr>
+    <tr><td>Teachable mode = single dominant object</td><td>Classification, not detection; clean background, one object at a time</td></tr>
+    <tr><td>Local-only control (no remote/internet)</td><td>By design — offline classroom; AP range ~one room</td></tr>
+    <tr><td>Open-loop servos (no position feedback)</td><td>Hobby servos; we avoid stall by capping travel &amp; sizing grip, not by sensing current</td></tr>
+    <tr><td>98.8% mAP is on a clean test set</td><td>Real-world lighting is harder; two-stage training mitigates but doesn't erase the gap</td></tr>
+  </table>
+  <aside class="notes">
+    Volunteering limitations builds credibility. The open-loop / no-current-sensing point is
+    the one to be crisp on — it's the honest version of the "stall" story.
+  </aside>
+</section>
+
+<!-- 20 · FUTURE WORK -->
+<section data-background-color="#0b1220">
+  <h2>Future work</h2>
+  <ul class="small">
+    <li>Improve detection robustness under classroom lighting (the remaining failure mode)</li>
+    <li>OTA firmware updates — drop the USB re-flash entirely</li>
+    <li>On-arm ESP32-CAM as the default vision source</li>
+    <li>Multi-object teachable detection (localization, not just classification)</li>
+    <li>Larger classroom pilot &amp; longitudinal usability study</li>
+  </ul>
+  <aside class="notes">
+    Lead with detection robustness — the data (all 9 failures were vision) points straight there.
+  </aside>
+</section>
+
+<!-- 21 · CONCLUSION -->
+<section data-background-gradient="linear-gradient(180deg,#111a2e,#0b1220)">
+  <h2 class="center">Conclusion</h2>
+  <p class="center small" style="margin-top:.4em;">
+    A <b>PHP 3,116</b>, 3D-printed 5-DOF arm that a beginner can <b>program with blocks</b>,
+    <b>teach to see</b>, and run <b>entirely offline</b> — hitting <b>98.8% detection</b> and
+    <b>92.5% sorting</b>, and validated with students. <b>All five objectives met.</b>
+  </p>
+  <p class="center" style="margin-top:.9em;">
+    <em class="q" style="font-size:1.2em;">Camera sees · PC thinks · Arm acts.</em>
+  </p>
+  <p class="center tiny" style="margin-top:1.2em;">Thank you — questions welcome.</p>
+  <aside class="notes">
+    Land on the same one-liner you opened with, plus "all five objectives met." Invite questions.
+  </aside>
+</section>
+
+<!-- 22 · APPENDIX: Q&A PREP -->
+<section data-background-color="#0a0f1c">
+  <h2>Appendix — anticipated questions</h2>
+  <ul class="tiny">
+    <li><b>How much did it cost?</b> → PHP 3,116 (Table 6.4), 89% of the ≤3,500 target; vs ~8,500 / ~17,000 commercial.</li>
+    <li><b>Is 98.8% real-world?</b> → It's the held-out test split; real sorting was 92.5%, and all 9 misses were vision under lighting.</li>
+    <li><b>How do you detect a stall?</b> → We don't sense current; we cap travel &amp; size the grip so it can't jam.</li>
+    <li><b>Why YOLOv8n?</b> → Real-time on CPU, matches the low-cost/edge goal; larger models optional.</li>
+    <li><b>Why AP mode over cloud/Blynk?</b> → Works offline, no accounts, one room per robot.</li>
+    <li><b>YOLO vs teachable mode?</b> → YOLO = fixed 6-class detector; teachable = arbitrary single-object classifier.</li>
+    <li><b>Dataset?</b> → spiled-lego-bricks (Kaggle), 3,031 imgs / 9,596 annotations, 70/15/15.</li>
+    <li><b>What was the biggest engineering win?</b> → 41.7% → 92.5% sorting via the optimization log (Table 6.8).</li>
+  </ul>
+  <aside class="notes">
+    For you, not the panel — jump here if a question lands. Every answer is grounded in the paper.
+  </aside>
+</section>
+
+</div></div>
+<div class="footer">RIAL-3-2526-C7 · Block Robot · ← → navigate · S speaker notes · F fullscreen</div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/notes/notes.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true,
+    slideNumber: 'c/t',
+    transition: 'slide',
+    plugins: [ RevealNotes, RevealHighlight ],
+  });
+</script>
+</body>
+</html>
