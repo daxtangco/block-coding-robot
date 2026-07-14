@@ -9,18 +9,16 @@
 // The arm stays in manual mode; each move is sent as servo commands and we await
 // the firmware's {type:'done'} ACK before advancing, so moves never overlap.
 
-import { sendServo, isConnected, onRobotMessage } from './robot-link.js';
+import { sendServo, isConnected, onRobotMessage,
+         GRIPPER_CH, GRIPPER_OPEN, gripperCloseForClass } from './robot-link.js';
 import { getLatestDetection } from './vision-state.js';
 import { getPoses } from './pose-teaching.js';
 
-// Gripper channel + open/close angles. These MUST match the firmware's tuned
-// GRIPPER_OPEN/GRIPPER_CLOSE (arm_controller_ap_mode.ino), not the 0/90 the pose
-// sliders use: a sort program grips real objects, so close_claw has to land on
-// the angle that holds firmly without jamming the geared jaws (which stalls the
-// servo and browns out the board). Close=5 / Open=30 is the tuned sweet spot.
-const GRIPPER_CH = 4;
-const GRIPPER_OPEN = 30;
-const GRIPPER_CLOSE = 5;
+// Gripper angles come from robot-link.js. close_claw picks its angle from the
+// piece currently under the camera (see gripperCloseForClass): a wide 2-stud
+// brick needs a larger close angle than a narrow 1-stud one, otherwise the jaws
+// bottom out early and the servo stalls — drawing max current on the shared
+// supply and starving the shoulder on the next lift.
 
 const MOVE_TIMEOUT_MS = 13000;  // > firmware's 11s slewBlocking ceiling
 
@@ -70,6 +68,14 @@ function awaitMove(sendFn) {
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Class name of the highest-priority current detection, or null if none. Used
+// to size the gripper close angle to the piece being picked up.
+function topDetectionClass() {
+    const result = getLatestDetection();
+    const top = result && result.detections && result.detections[0];
+    return top ? top.class_name : null;
+}
 
 // ---- control ---------------------------------------------------------------
 
@@ -136,10 +142,15 @@ async function execBlock(block) {
             onLog('open claw', false);
             await awaitMove(() => sendServo(GRIPPER_CH, GRIPPER_OPEN));
             break;
-        case 'close_claw':
-            onLog('close claw', false);
-            await awaitMove(() => sendServo(GRIPPER_CH, GRIPPER_CLOSE));
+        case 'close_claw': {
+            // Choose the close angle from the piece under the camera so a wide
+            // brick doesn't stall the servo (see gripperCloseForClass).
+            const seen = topDetectionClass();
+            const angle = gripperCloseForClass(seen);
+            onLog(`close claw${seen ? ` (${seen} → ${angle}°)` : ''}`, false);
+            await awaitMove(() => sendServo(GRIPPER_CH, angle));
             break;
+        }
         case 'wait_for_arm':
             await sleep(200);
             break;

@@ -127,7 +127,7 @@ const char EMBEDDED_HTML[] PROGMEM = R"rawliteral(
         // below — the manual buttons here and closeClaw()/openClaw() in programs
         // must command the same angles.
         const GRIPPER_OPEN = 30;
-        const GRIPPER_CLOSE = 5;
+        const GRIPPER_CLOSE = 15;
 
         function setEnabled(on) {
             sliders.forEach(s => s.disabled = !on);
@@ -282,7 +282,14 @@ const bool SERVO_INVERTED[5] = {false, true, false, true, false};
 // the object firmly with the servo AT its target (not stalled), keeping holding
 // current low. Tune to your object: raise it (toward 90) if the shoulder still
 // can't lift (servo still grinding), lower it if the object slips.
-const int GRIPPER_CLOSE = 5;
+//
+// This firmware constant is a SINGLE angle used by closeClaw() (compiled/auto
+// programs) and the remote page — the ESP32 has no vision, so it can't size the
+// grip per piece. It's set to the WIDE-safe angle so it never stalls on a
+// 2-stud brick (thinner pieces just grip a little looser here). The live block
+// runner in the browser DOES size the close angle per detected class — see
+// gripperCloseForClass() in frontend/js/ui/robot-link.js (narrow=10, wide=15).
+const int GRIPPER_CLOSE = 15;
 const int GRIPPER_OPEN  = 30;
 
 // Default ("home") servo positions: base 90 (physical center), shoulder 90,
