@@ -152,9 +152,24 @@ network, and a control page opens automatically. No home WiFi or internet needed
 ### One-time setup (flashing the robot)
 
 1. Plug the ESP32 into your computer with a USB cable.
-2. Install **arduino-cli** — follow [docs/ARDUINO_CLI_SETUP.md](docs/ARDUINO_CLI_SETUP.md).
-3. In the IDE, go to the **⚙️ Setup** tab and click **🔨 Build & Flash**. Wait about 2
-   minutes while it builds the robot's program and loads it on.
+2. In the **launcher**, click **🔧 Install robot tools**. This downloads and sets up
+   everything needed to flash the robot — `arduino-cli`, the ESP32 board core, and the
+   servo library — with no terminal required.
+
+   > **Heads up — this is a big download (~1 GB).** The ESP32 core bundles two full
+   > compiler toolchains, and the download server is often slow or throttled in some
+   > regions (it can crawl for a long time). A few things help:
+   > - The progress bar keeps spinning so you know it's still working, not frozen.
+   > - If it's interrupted, just click **🔧 Install robot tools** again — it **resumes**
+   >   from where it left off, it doesn't start over.
+   > - A **VPN** (Singapore/Japan/US) often turns a multi-hour crawl into a few minutes.
+   >
+   > Prefer the terminal, or already have arduino-cli set up? See
+   > [docs/ARDUINO_CLI_SETUP.md](docs/ARDUINO_CLI_SETUP.md) — the launcher uses a system
+   > `arduino-cli` if you already have one.
+3. Click **🔨 Flash the robot** in the launcher (or **🔨 Build & Flash** on the IDE's
+   **⚙️ Setup** tab). It builds the robot's program and loads it on. If the tools aren't
+   installed yet, the flash button installs them for you first.
 4. Upload the robot's web page files (one time only):
    ```bash
    python scripts/upload_spiffs.py --port COM3
