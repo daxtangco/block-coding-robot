@@ -8,6 +8,41 @@
 const ROBOT_WS_URL = 'ws://192.168.4.1/ws';
 const RECONNECT_DELAY = 2000;
 
+// ── Gripper: single source of truth ─────────────────────────────────────────
+// The gripper is servo channel 4. Lower angle = jaws more closed (OPEN=30 is
+// jaws apart). Every gripper control — the Teach Poses buttons and the block
+// program runner — imports these so they can't drift apart. Keep them in sync
+// with GRIPPER_OPEN/GRIPPER_CLOSE in arm_controller_ap_mode.ino, which is what
+// the robot's own remote page and closeClaw()/openClaw() use.
+export const GRIPPER_CH = 4;
+export const GRIPPER_OPEN = 30;
+
+// One fixed close angle can't fit every piece: the servo has no feedback, so if
+// the jaws hit a thick piece before reaching the commanded angle, the servo
+// STALLS — drawing max current on the shared supply, which starves the shoulder
+// and jams the next lift. So close angle is chosen by piece WIDTH:
+//   - narrow (1-stud): jaws travel nearly shut, so a small angle grips firmly.
+//   - wide  (2-stud):  jaws contact sooner, so a larger angle = the servo still
+//                      reaches its target and never stalls.
+// Tune these two on the real arm; they're the only gripper numbers to touch.
+export const GRIPPER_CLOSE_NARROW = 10;
+export const GRIPPER_CLOSE_WIDE = 15;
+// Default close (manual Teach Poses button, when no piece is known): use the
+// wider angle so a manual close can never stall on whatever is in the jaws.
+export const GRIPPER_CLOSE = GRIPPER_CLOSE_WIDE;
+
+// LEGO classes that are 2 studs wide. Everything else is treated as narrow.
+const WIDE_CLASSES = new Set([
+    'brick_2x2', 'brick_2x4', 'plate_2x2', 'plate_2x4',
+]);
+
+// Pick the close angle for a detected class name. Unknown/absent → narrow-safe
+// default is the wide angle (never stall); a known narrow class grips tighter.
+export function gripperCloseForClass(className) {
+    if (!className) return GRIPPER_CLOSE;
+    return WIDE_CLASSES.has(className) ? GRIPPER_CLOSE_WIDE : GRIPPER_CLOSE_NARROW;
+}
+
 let ws = null;
 let connected = false;
 let reconnectTimer = null;

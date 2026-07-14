@@ -25,9 +25,9 @@ const int PIN_ELBOW = 27;     // GPIO 27
 const int PIN_WRIST = 32;     // GPIO 32
 const int PIN_GRIPPER = 33;   // GPIO 33
 
-// Gripper positions
+// Gripper positions (kept in sync with the PCA9685 / AP-mode templates)
 const int GRIPPER_OPEN = 30;
-const int GRIPPER_CLOSE = 90;
+const int GRIPPER_CLOSE = 15;
 
 // Operating mode
 bool autoMode = false;

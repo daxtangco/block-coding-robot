@@ -78,7 +78,11 @@ Blockly.Arduino.scrub_ = function(block, code, opt_thisOnly) {
 
 Blockly.Arduino['move_to_pose'] = function(block) {
     const pose = block.getFieldValue('POSE');
-    return `moveArmToPose(POSE_${pose});\n`;
+    // Uppercase to match the C++ const name the backend generates
+    // (template_engine.py builds POSE_<NAME.upper()>). Without this, a pose
+    // whose name has lowercase letters (e.g. "PICKUP2x2") produces an
+    // undeclared-identifier compile error.
+    return `moveArmToPose(POSE_${pose.toUpperCase()});\n`;
 };
 
 Blockly.Arduino['open_claw'] = function(block) {
