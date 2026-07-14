@@ -92,6 +92,64 @@ def check_tool_on_path(tool: str, label: str, fix_hint: str) -> CheckResult:
     return CheckResult("fail", label, f"{tool} not on PATH", fix_hint)
 
 
+def tools_dir(project_root: Path) -> Path:
+    """Where the launcher keeps tools it installs itself (e.g. arduino-cli)."""
+    return Path(project_root) / "tools"
+
+
+def arduino_cli_local(project_root: Path) -> Path:
+    """Path to a launcher-managed arduino-cli, whether or not it exists yet."""
+    name = "arduino-cli.exe" if sys.platform == "win32" else "arduino-cli"
+    return tools_dir(project_root) / name
+
+
+def arduino_cli_path(project_root: Path):
+    """Resolve arduino-cli: a system copy on PATH wins, else our own in tools/.
+
+    Returns the executable path as a str, or None if neither is available.
+    """
+    on_path = shutil.which("arduino-cli")
+    if on_path:
+        return on_path
+    local = arduino_cli_local(project_root)
+    if local.exists():
+        return str(local)
+    return None
+
+
+# Espressif's board-manager index, needed for `core list`/`core install` to
+# resolve esp32:esp32. Defined here so the doctor check and the installer
+# (launcher_actions) pass the SAME URL — otherwise a freshly-installed core can
+# read back as "missing" and trigger a needless reinstall.
+ESP32_BOARD_URL = (
+    "https://espressif.github.io/arduino-esp32/package_esp32_index.json"
+)
+
+
+def esp32_core_installed(cli: str, additional_urls: str = ESP32_BOARD_URL) -> bool:
+    """True if the esp32:esp32 board core is installed for the given arduino-cli."""
+    cmd = [str(cli), "core", "list"]
+    if additional_urls:
+        cmd += ["--additional-urls", additional_urls]
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+    except Exception:
+        return False
+    return r.returncode == 0 and "esp32:esp32" in r.stdout
+
+
+def check_arduino_tools(project_root: Path) -> CheckResult:
+    """Fold arduino-cli + esp32 core into a single 'ready to flash?' check."""
+    cli = arduino_cli_path(project_root)
+    if not cli:
+        return CheckResult("fail", "Robot tools", "arduino-cli not installed",
+                           ARDUINO_FIX)
+    if not esp32_core_installed(cli):
+        return CheckResult("fail", "Robot tools", "esp32 board core missing",
+                           ARDUINO_FIX)
+    return CheckResult("ok", "Robot tools", "arduino-cli + esp32 core ready")
+
+
 def check_arm_reachable(host: str = "192.168.4.1", port: int = 80,
                         timeout: float = 1.5) -> CheckResult:
     try:
@@ -107,8 +165,8 @@ def check_arm_reachable(host: str = "192.168.4.1", port: int = 80,
 
 WEB_FIX = "Click Set up to install the web dependencies."
 VISION_FIX = "Click Set up to install the vision dependencies."
-ARDUINO_FIX = ("Install arduino-cli and the esp32 core "
-               "(see docs/ARDUINO_CLI_SETUP.md), then Re-check.")
+ARDUINO_FIX = ("Click '🔧 Install robot tools' to set up arduino-cli and the "
+               "esp32 core automatically, then Re-check.")
 
 
 def run_checks(project_root: Path, include_flash: bool = False) -> list:
@@ -122,7 +180,7 @@ def run_checks(project_root: Path, include_flash: bool = False) -> list:
         check_model(root),
     ]
     if include_flash:
-        results.append(check_tool_on_path("arduino-cli", "arduino-cli", ARDUINO_FIX))
+        results.append(check_arduino_tools(root))
         results.append(check_arm_reachable())
     return results
 

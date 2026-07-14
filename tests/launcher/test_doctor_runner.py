@@ -15,7 +15,7 @@ def test_run_checks_core_order(tmp_path):
 def test_run_checks_includes_flash(tmp_path):
     results = doctor.run_checks(tmp_path, include_flash=True)
     labels = [r.label for r in results]
-    assert labels[-2:] == ["arduino-cli", "Arm"]
+    assert labels[-2:] == ["Robot tools", "Arm"]
 
 
 def test_all_ok_and_first_failure():
