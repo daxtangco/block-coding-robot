@@ -13,7 +13,7 @@ import webbrowser
 from pathlib import Path
 
 import tkinter as tk
-from tkinter import scrolledtext
+from tkinter import scrolledtext, ttk
 
 from launcher import doctor, launcher_actions as actions
 
@@ -78,7 +78,7 @@ class LauncherApp:
         self.backend_proc = None
 
         root.title("Block Robot IDE")
-        root.geometry("720x360")
+        root.geometry("720x400")
 
         header = tk.Label(root, text="🤖 Block Robot IDE",
                           font=("Segoe UI", 16, "bold"))
@@ -89,15 +89,23 @@ class LauncherApp:
 
         btns = tk.Frame(body)
         btns.pack(side="left", fill="y", padx=(0, 10))
-        self._btn(btns, "▶ Start IDE", self.on_start)
-        self._btn(btns, "⚙️ Set up / update", self.on_setup)
-        self._btn(btns, "🩺 Check my system", self.on_check)
-        self._btn(btns, "🔨 Flash the robot", self.on_flash)
+        self._buttons = [
+            self._btn(btns, "▶ Start IDE", self.on_start),
+            self._btn(btns, "⚙️ Set up / update", self.on_setup),
+            self._btn(btns, "🔧 Install robot tools", self.on_install_tools),
+            self._btn(btns, "🩺 Check my system", self.on_check),
+            self._btn(btns, "🔨 Flash the robot", self.on_flash),
+        ]
 
         self.log = scrolledtext.ScrolledText(body, width=52, height=16,
                                              bg="#020617", fg="#e2e8f0",
                                              font=("Consolas", 9))
         self.log.pack(side="right", fill="both", expand=True)
+
+        # Indeterminate progress bar: shows the app is alive during the long
+        # (possibly throttled) esp32 core download, which prints little output.
+        self.progress = ttk.Progressbar(root, mode="indeterminate")
+        self.progress.pack(fill="x", padx=10, pady=(0, 8))
 
         self.root.after(100, self._drain)
         self.on_check()
@@ -124,18 +132,38 @@ class LauncherApp:
         except tk.TclError:
             pass  # window closed mid-action
 
+    def _set_busy(self, busy: bool):
+        """Toggle the progress bar + button state (call on the main thread)."""
+        self._busy = busy
+        for b in self._buttons:
+            b.config(state="disabled" if busy else "normal")
+        if busy:
+            self.progress.start(12)
+        else:
+            self.progress.stop()
+
     def _run_bg(self, fn):
-        threading.Thread(target=fn, daemon=True).start()
+        """Run fn on a worker thread, showing 'busy' UI for its duration.
+
+        Must be called from the main (Tk) thread. No-ops if an action is
+        already running, so chained/stray clicks can't interleave subprocesses.
+        """
+        if getattr(self, "_busy", False):
+            self._log("⏳ Busy — please wait for the current step to finish.")
+            return
+        def wrapped():
+            try:
+                fn()
+            finally:
+                self.root.after(0, lambda: self._set_busy(False))
+        self._set_busy(True)
+        threading.Thread(target=wrapped, daemon=True).start()
 
     # ---- button handlers ----
     def on_check(self):
         def work():
             self._log("── Checking system ──")
-            for r in doctor.run_checks(self.proj, include_flash=False):
-                icon = "✅" if r.status == "ok" else "❌"
-                self._log(f"{icon} {r.label}: {r.message}")
-                if r.status == "fail" and r.fix_hint:
-                    self._log(f"   → {r.fix_hint}")
+            self._report_checks(include_flash=False)
         self._run_bg(work)
 
     def on_setup(self):
@@ -160,14 +188,36 @@ class LauncherApp:
             webbrowser.open("http://localhost:8000")
         self._run_bg(work)
 
+    def _report_checks(self, include_flash: bool):
+        """Run doctor checks and stream the results (call from a worker)."""
+        for r in doctor.run_checks(self.proj, include_flash=include_flash):
+            icon = "✅" if r.status == "ok" else "❌"
+            self._log(f"{icon} {r.label}: {r.message}")
+            if r.status == "fail" and r.fix_hint:
+                self._log(f"   → {r.fix_hint}")
+
+    def on_install_tools(self):
+        def work():
+            self._log("── Installing robot tools ──")
+            actions.install_robot_tools(self.proj, self._log)
+            # Re-check inline (same worker) so we don't re-enter _run_bg while
+            # this action still holds the busy lock.
+            self._log("── Checking system (incl. robot tools) ──")
+            self._report_checks(include_flash=True)
+        self._run_bg(work)
+
     def on_flash(self):
         def work():
             results = doctor.run_checks(self.proj, include_flash=True)
-            # arduino-cli (index 5) is required; arm (index 6) is optional.
+            # Robot tools (index 5) are required; arm (index 6) is optional.
             arduino = results[5]
             if arduino.status != "ok":
-                self._log(f"❌ {arduino.label}: {arduino.fix_hint}")
-                return
+                self._log(f"⚙️ {arduino.label}: {arduino.message} — "
+                          f"installing automatically …")
+                if not actions.install_robot_tools(self.proj, self._log):
+                    self._log("❌ Could not finish installing robot tools. "
+                              "See the log above.")
+                    return
 
             if str(self.proj) not in sys.path:
                 sys.path.insert(0, str(self.proj))

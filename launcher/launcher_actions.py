@@ -4,6 +4,7 @@ Every operation streams subprocess output through a `log` callable so the
 Tkinter diagnostics panel can show progress live. Nothing here imports tkinter.
 """
 import os
+import platform
 import shutil
 import subprocess
 import sys
@@ -142,10 +143,199 @@ def start_backend(project_root: Path, log) -> subprocess.Popen:
     return proc
 
 
+# ── Robot-flashing toolchain (arduino-cli + esp32 core + libs) ───────────────
+#
+# The esp32 core is a ~1 GB download (dual Xtensa/RISC-V compiler toolchains)
+# and Espressif's servers throttle hard from some regions. So the core install
+# runs in a resume-retry loop: arduino-cli caches partial downloads, so each
+# retry picks up where the last left off rather than starting over.
+
+# The board-manager URL lives in doctor so the install and the readiness check
+# use one source of truth; re-exported here for the install calls below.
+ESP32_BOARD_URL = doctor.ESP32_BOARD_URL
+
+# Arduino libraries the firmware templates #include. Names are the exact
+# registry names; arduino-cli pulls dependencies (e.g. Adafruit BusIO,
+# ESPAsyncTCP) automatically. This exact set is verified to compile the
+# AP-mode template against esp32 core 3.3.10.
+#   - ESP Async WebServer / Async TCP: the ESP32Async fork, the one maintained
+#     for esp32 core 3.x (older ESPAsyncWebServer forks fail to compile on it).
+FIRMWARE_LIBS = [
+    "Adafruit PWM Servo Driver Library",  # PCA9685 servo driver
+    "ArduinoJson",                        # WebSocket message (de)serialization
+    "Async TCP",                          # dependency of the async web server
+    "ESP Async WebServer",                # AP-mode embedded web UI + WebSocket
+]
+# Back-compat alias (kept for any external callers/tests).
+ADAFRUIT_PWM_LIB = FIRMWARE_LIBS[0]
+
+# arduino-cli release archives, keyed by (platform, machine-is-arm).
+_ARDUINO_CLI_BASE = "https://downloads.arduino.cc/arduino-cli/"
+
+
+def _arduino_cli_asset() -> Optional[str]:
+    """Filename of the arduino-cli archive for this OS/arch, or None."""
+    machine = platform.machine().lower()
+    is_arm = machine in ("arm64", "aarch64")
+    if sys.platform == "win32":
+        return "arduino-cli_latest_Windows_64bit.zip"
+    if sys.platform == "darwin":
+        return ("arduino-cli_latest_macOS_ARM64.tar.gz" if is_arm
+                else "arduino-cli_latest_macOS_64bit.tar.gz")
+    if sys.platform.startswith("linux"):
+        return ("arduino-cli_latest_Linux_ARM64.tar.gz" if is_arm
+                else "arduino-cli_latest_Linux_64bit.tar.gz")
+    return None
+
+
+def install_arduino_cli(project_root: Path, log) -> Optional[str]:
+    """Download a private arduino-cli into <root>/tools. Returns its path or None.
+
+    Skips the download if arduino-cli is already resolvable (system PATH or a
+    prior local install).
+    """
+    existing = doctor.arduino_cli_path(project_root)
+    if existing:
+        log(f"arduino-cli already available: {existing}")
+        return existing
+
+    asset = _arduino_cli_asset()
+    if not asset:
+        log(f"ERROR: no arduino-cli build for this platform ({sys.platform}/"
+            f"{platform.machine()}). Install it manually from arduino.cc.")
+        return None
+
+    tools = doctor.tools_dir(project_root)
+    tools.mkdir(parents=True, exist_ok=True)
+    url = _ARDUINO_CLI_BASE + asset
+    archive = tools / asset
+    log(f"Downloading arduino-cli from {url} …")
+    try:
+        urllib.request.urlretrieve(url, str(archive))
+    except Exception as e:
+        log(f"ERROR: arduino-cli download failed: {e}")
+        if archive.exists():
+            archive.unlink()  # don't leave a partial archive behind
+        return None
+
+    log("Extracting arduino-cli …")
+    try:
+        _extract_archive(archive, tools)
+    except Exception as e:
+        log(f"ERROR: could not extract arduino-cli: {e}")
+        return None
+    finally:
+        if archive.exists():
+            archive.unlink()
+
+    cli = doctor.arduino_cli_local(project_root)
+    if not cli.exists():
+        # Official archives place the binary at the root, but guard against a
+        # future layout change by searching one level down before giving up.
+        found = next((p for p in tools.rglob(cli.name) if p.is_file()), None)
+        if found and found != cli:
+            found.replace(cli)
+        if not cli.exists():
+            log("ERROR: arduino-cli not found after extraction.")
+            return None
+    if sys.platform != "win32":
+        cli.chmod(0o755)
+    log(f"arduino-cli installed: {cli}")
+    return str(cli)
+
+
+def _extract_archive(archive: Path, dest: Path) -> None:
+    """Extract a .zip or .tar.gz into dest, refusing members that escape it."""
+    dest = dest.resolve()
+
+    def _safe(name: str) -> Path:
+        target = (dest / name).resolve()
+        if dest not in target.parents and target != dest:
+            raise ValueError(f"unsafe path in archive: {name}")
+        return target
+
+    if str(archive).endswith(".zip"):
+        import zipfile
+        with zipfile.ZipFile(archive) as z:
+            for n in z.namelist():
+                _safe(n)
+            z.extractall(dest)
+    else:
+        import tarfile
+        with tarfile.open(archive) as t:
+            for m in t.getmembers():
+                _safe(m.name)
+            # data filter (py3.12+) blocks unsafe members defensively too.
+            try:
+                t.extractall(dest, filter="data")
+            except TypeError:
+                t.extractall(dest)
+
+
+def install_esp32_core(cli: str, log, retries: int = 5) -> bool:
+    """Install the esp32:esp32 core, retrying so throttled downloads resume.
+
+    arduino-cli keeps partial downloads in its staging cache, so a failed
+    attempt is not wasted — the next retry continues from there.
+    """
+    log("Updating board index (registering esp32 board URL) …")
+    if _stream([cli, "core", "update-index",
+                "--additional-urls", ESP32_BOARD_URL], log) != 0:
+        log("WARNING: index update failed; attempting install anyway.")
+
+    if doctor.esp32_core_installed(cli, ESP32_BOARD_URL):
+        log("esp32 core already installed.")
+        return True
+
+    log("Installing esp32 core (~1 GB — this can take a while on a slow link; "
+        "it resumes if interrupted) …")
+    for attempt in range(1, retries + 1):
+        log(f"── esp32 core install attempt {attempt}/{retries} ──")
+        code = _stream([cli, "core", "install", "esp32:esp32",
+                        "--additional-urls", ESP32_BOARD_URL], log)
+        if code == 0 and doctor.esp32_core_installed(cli, ESP32_BOARD_URL):
+            log("esp32 core installed.")
+            return True
+        if attempt < retries:
+            log(f"Attempt {attempt} did not complete; retrying (resumes from "
+                f"cached partial download) …")
+    log("ERROR: esp32 core install did not finish after "
+        f"{retries} attempts. Check your connection (a VPN often helps from "
+        "throttled regions), then click Install robot tools again — progress "
+        "so far is cached and will resume.")
+    return False
+
+
+def install_arduino_lib(cli: str, lib: str, log) -> bool:
+    if _stream([cli, "lib", "install", lib], log) != 0:
+        log(f"ERROR: could not install library '{lib}'.")
+        return False
+    return True
+
+
+def install_robot_tools(project_root: Path, log) -> bool:
+    """Full no-terminal firmware toolchain: arduino-cli + esp32 core + libs."""
+    cli = install_arduino_cli(project_root, log)
+    if not cli:
+        return False
+    if not install_esp32_core(cli, log):
+        return False
+    log("Installing firmware libraries …")
+    for lib in FIRMWARE_LIBS:
+        if not install_arduino_lib(cli, lib, log):
+            return False
+    log("✅ Robot tools ready — you can now Flash the robot.")
+    return True
+
+
 def flash_firmware(project_root: Path, port: str, sketch_path: Path, log) -> bool:
+    cli = doctor.arduino_cli_path(project_root)
+    if not cli:
+        log("ERROR: arduino-cli not installed. Click 'Install robot tools' first.")
+        return False
     sketch_dir = Path(sketch_path).parent
     cmd = [
-        "arduino-cli", "compile", "--upload",
+        cli, "compile", "--upload",
         "--fqbn", "esp32:esp32:esp32",
         "--port", port,
         str(sketch_dir),
