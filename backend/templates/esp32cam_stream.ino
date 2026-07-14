@@ -1,13 +1,14 @@
 /*
  * ESP32-CAM WiFi Camera Stream
  *
- * Connects to the robot arm's AP (RobotArm-XXXX / robot1234) and exposes:
+ * Auto-joins the robot arm's AP (any RobotArm-* / robot1234 — no editing needed,
+ * works with any arm board) and exposes:
  *   GET /capture  ->  single JPEG snapshot
  *   GET /stream   ->  MJPEG stream (for live preview in Vision tab)
  *
  * Flash with board: AI Thinker ESP32-CAM
  * After flashing: remove GPIO0-GND jumper, press RESET.
- * Open Serial Monitor at 115200 to see the assigned IP address.
+ * Open Serial Monitor at 115200 to confirm it found the arm and got 192.168.4.50.
  */
 
 #include "esp_camera.h"
@@ -15,9 +16,13 @@
 #include <WebServer.h>
 
 // ── WiFi ─────────────────────────────────────────────────────────────────────
-// Connect to the arm's access point.
-const char* SSID     = "ROBOTARM-6654";   // your arm's access point
-const char* PASSWORD = "robot1234";
+// The cam auto-discovers the arm: the arm's SSID is "RobotArm-" + the last bytes
+// of its MAC, so it's different on every board. Rather than hardcode one name
+// (which breaks the moment you swap arms), the cam scans on boot and joins the
+// strongest network whose name starts with this prefix — case-insensitively, so
+// it matches "RobotArm-840", "ROBOTARM-840", etc. Zero edits when boards change.
+const char* SSID_PREFIX = "robotarm-";   // matched case-insensitively
+const char* PASSWORD     = "robot1234";
 
 // Static IP so the camera is ALWAYS at the same address. Without this, the arm's
 // DHCP hands out a different IP on each reboot (192.168.4.2, .3, ...) and the
@@ -147,6 +152,61 @@ void handleNotFound() {
     server.send(404, "text/plain", "Not found");
 }
 
+// ── Find the arm's network ─────────────────────────────────────────────────────
+// Scan for access points and return the name of the strongest one whose SSID
+// starts with SSID_PREFIX (case-insensitive). Returns "" if none is found, so
+// the caller can retry — the arm may still be booting its AP.
+String findArmSSID() {
+    int n = WiFi.scanNetworks();
+    String best = "";
+    int bestRSSI = -1000;
+    for (int i = 0; i < n; i++) {
+        String ssid = WiFi.SSID(i);
+        String lower = ssid;
+        lower.toLowerCase();
+        if (lower.startsWith(SSID_PREFIX) && WiFi.RSSI(i) > bestRSSI) {
+            best = ssid;                // keep the AP's real (original-case) name
+            bestRSSI = WiFi.RSSI(i);
+        }
+    }
+    WiFi.scanDelete();
+    return best;
+}
+
+// Connect to the arm AP, discovering its SSID by prefix. Blocks until connected,
+// rescanning if the arm isn't up yet. Applies the static IP so the Vision tab
+// always finds the cam at 192.168.4.50.
+void connectToArm() {
+    WiFi.mode(WIFI_STA);
+    for (;;) {
+        Serial.printf("Scanning for a '%s*' network…\n", SSID_PREFIX);
+        String ssid = findArmSSID();
+        if (ssid.length() == 0) {
+            Serial.println("  no arm AP found — is the arm powered on? retrying in 3s");
+            delay(3000);
+            continue;
+        }
+        Serial.printf("Found arm AP: %s — connecting…\n", ssid.c_str());
+
+        if (!WiFi.config(CAM_IP, CAM_GATEWAY, CAM_SUBNET)) {
+            Serial.println("Static IP config failed — falling back to DHCP");
+        }
+        WiFi.begin(ssid.c_str(), PASSWORD);
+
+        // Give this AP ~10s; if it doesn't connect, rescan (arm may have rebooted
+        // with a new SSID, or we picked a weak/stale one).
+        unsigned long start = millis();
+        while (WiFi.status() != WL_CONNECTED && millis() - start < 10000) {
+            delay(500);
+            Serial.print(".");
+        }
+        Serial.println();
+        if (WiFi.status() == WL_CONNECTED) return;
+        Serial.println("  connect timed out — rescanning");
+        WiFi.disconnect();
+    }
+}
+
 // ── Setup ─────────────────────────────────────────────────────────────────────
 void setup() {
     Serial.begin(115200);
@@ -158,17 +218,7 @@ void setup() {
     }
     Serial.println("Camera OK");
 
-    WiFi.mode(WIFI_STA);
-    if (!WiFi.config(CAM_IP, CAM_GATEWAY, CAM_SUBNET)) {
-        Serial.println("Static IP config failed — falling back to DHCP");
-    }
-    WiFi.begin(SSID, PASSWORD);
-    Serial.printf("Connecting to %s", SSID);
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-        Serial.print(".");
-    }
-    Serial.println();
+    connectToArm();
     Serial.printf("Connected! IP: %s\n", WiFi.localIP().toString().c_str());
     Serial.println("Endpoints:");
     Serial.printf("  Snapshot : http://%s/capture\n", WiFi.localIP().toString().c_str());
