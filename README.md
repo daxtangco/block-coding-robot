@@ -135,8 +135,33 @@ You have two choices:
 4. Hold an object up — boxes appear around things the model recognizes, and it shows
    which bin each one goes to.
 
-> The camera here is your **computer's webcam**. Later, an **ESP32-CAM** can send the
-> picture instead — the rest works the same way.
+> The camera here is your **computer's webcam**. To use the robot's own
+> **ESP32-CAM** instead, see the next section — the detection works the same way.
+
+### Optional — use the ESP32-CAM instead of your webcam
+
+The ESP32-CAM is the little camera on the robot. It doesn't join your home WiFi —
+it **auto-joins the arm's own network** (`RobotArm-XXXX`) and always sits at the
+fixed address **`http://192.168.4.50`**. You don't edit anything: on boot it scans
+for any `RobotArm-*` network and connects to the strongest one, so the same
+firmware works on every board.
+
+To use it in the Vision tab:
+
+1. **Flash the ESP32-CAM** once with `backend/templates/esp32cam_stream.ino`
+   (board: *AI Thinker ESP32-CAM*). After flashing, remove the GPIO0–GND jumper
+   and press RESET.
+2. Power on the **arm** first (so its WiFi exists), then the **camera**.
+3. Connect **your computer** to the same `RobotArm-XXXX` network (password
+   `robot1234`). You lose internet while on it — that's normal.
+4. In the **📷 Vision** tab, choose **ESP32-CAM**, leave the address as
+   `http://192.168.4.50`, and click **Start Camera**.
+
+> **⚠️ Power the ESP32-CAM directly — not through a USB hub.** The camera draws a
+> big current spike when it starts up. Through a hub (especially an unpowered one)
+> it browns out, the camera fails to start, and it never joins the WiFi — so
+> `192.168.4.50` stays unreachable even though everything looks flashed. Plug it
+> straight into a USB port or a solid 5V supply.
 
 ---
 
@@ -276,9 +301,17 @@ block-coding-robot/
 **The Vision or Train Model tab shows an error about a missing module**
 - You likely skipped Part 2. Run `pip install -r requirements-vision.txt`.
 
-**The camera won't start**
+**The camera won't start (webcam)**
 - Your browser must have permission to use the webcam — allow it when asked.
 - Chrome or Edge work best.
+
+**The ESP32-CAM won't connect (`192.168.4.50` unreachable)**
+- **Plug it in directly, not through a USB hub** — a hub often can't supply the
+  startup current spike, so the camera browns out and never joins the WiFi.
+- Make sure the **arm is powered on first** (the camera joins *its* network), and
+  that your computer is on the same `RobotArm-XXXX` network.
+- Check the camera's serial monitor at 115200 baud: `Camera init failed` means a
+  power or loose-ribbon problem; `no arm AP found` means it can't see the arm.
 
 **Can't connect to the robot's WiFi**
 - Make sure the robot is powered on and you flashed it (Part 3).
