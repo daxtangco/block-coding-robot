@@ -37,3 +37,13 @@ def test_check_venv_ok_when_interpreter_present(tmp_path):
     py.write_text("")
     r = doctor.check_venv(tmp_path)
     assert r.status == "ok"
+
+
+def test_internet_reachable_false_on_closed_port():
+    # Port 1 on localhost is virtually never open — stands in for "offline".
+    assert doctor.internet_reachable(host="127.0.0.1", port=1, timeout=0.2) is False
+
+
+def test_usb_driver_constants_present():
+    assert doctor.USB_DRIVER_URL.startswith("http")
+    assert isinstance(doctor.NO_SERIAL_HINT, str) and doctor.NO_SERIAL_HINT

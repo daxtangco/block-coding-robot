@@ -163,10 +163,33 @@ def check_arm_reachable(host: str = "192.168.4.1", port: int = 80,
         )
 
 
+def internet_reachable(host: str = "pypi.org", port: int = 443,
+                       timeout: float = 3.0) -> bool:
+    """True if we can open a TCP connection to PyPI (i.e. pip can download)."""
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return True
+    except OSError:
+        return False
+
+
 WEB_FIX = "Click Set up to install the web dependencies."
 VISION_FIX = "Click Set up to install the vision dependencies."
 ARDUINO_FIX = ("Click '🔧 Install robot tools' to set up arduino-cli and the "
                "esp32 core automatically, then Re-check.")
+
+# USB-to-serial (ESP32 bridge chip) driver download. Most boards use CP210x
+# (Silicon Labs) or CH340 (WCH). Teachers run the vendor installer themselves.
+USB_DRIVER_URL = (
+    "https://www.silabs.com/developer-tools/usb-to-uart-bridge-vcp-drivers"
+)
+NO_SERIAL_HINT = (
+    "No robot detected over USB. Try, in order:\n"
+    "   1. Use a DATA USB cable, not a charge-only one (most common cause).\n"
+    "   2. Plug the ESP32 directly into the computer (not through a hub).\n"
+    "   3. Install the USB driver (CP210x or CH340), then plug in again.\n"
+    "   Then click 🔨 Flash the robot again."
+)
 
 
 def run_checks(project_root: Path, include_flash: bool = False) -> list:
