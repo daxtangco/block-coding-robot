@@ -142,6 +142,34 @@
   </aside>
 </section>
 
+<!-- 5b · LITERATURE → RESULTS -->
+<section data-background-color="#0b1220">
+  <h2>From the literature to our results</h2>
+  <table style="font-size:.52em;">
+    <tr><th>What prior work showed (Ch. 2)</th><th>Gap it left</th><th>What we did → result</th></tr>
+    <tr><td>Educational arms for STEM — Benyeogor (2024), Vandevelde (2020), Zeng <em class="q">iArm</em> (2022)</td>
+        <td>Little on <b>accessible, grade-leveled</b> use; long-term retention</td>
+        <td>Grade 7–10 curriculum + block-coding IDE — <b class="ok">SUS 71.3</b>, 90% ↑ interest</td></tr>
+    <tr><td>Vision pick-and-place — <b>Aldea (2022)</b> YOLOv5 <b>88%</b>, Arévalo-Hernández (2023), Mada Sanjaya (2021)</td>
+        <td>Affordability vs. accuracy; adaptability across levels</td>
+        <td>YOLOv8n <b class="ok">98.8% mAP</b>, <b class="ok">92.5%</b> real sorting — beats Aldea's 88%</td></tr>
+    <tr><td>Low-cost / 3D-printed arms — Mick <em class="q">Reachy</em> (2022), Ali (2020), Adediran (2024)</td>
+        <td>Cost vs. capability; few pair low cost <em>with</em> vision</td>
+        <td><b class="ok">PHP 3,116</b> 5-DOF — the <b>only vision-capable</b> arm in Table 6.5</td></tr>
+    <tr><td>Most platforms need coding / cloud / home WiFi</td>
+        <td>Infrastructure barrier in classrooms</td>
+        <td>Snap-block IDE, <b>fully offline</b> AP mode, one-click launcher</td></tr>
+  </table>
+  <p class="tiny center" style="margin-top:.6em;">Each documented gap maps to a specific objective we met — the study is positioned directly against 25 reviewed works (Table 2.1).</p>
+  <aside class="notes">
+    From Chapter 2 (Review of Related Literature) and Table 2.1 (Comparative Analysis of 25 studies,
+    PRISMA-selected). The strongest single comparison is Aldea et al. (2022) — a prior DLSU
+    joystick 4-DOF arm with YOLOv5 that hit 88% grasp-and-dispose; our block-coded 5-DOF arm with
+    YOLOv8n reached 92.5% real sorting AND 98.8% detection mAP. The recurring gap across all four
+    themes is affordable + accessible + curriculum-backed — which is exactly SO1/SO4/SO5.
+  </aside>
+</section>
+
 <!-- 6 · SYSTEM ARCHITECTURE -->
 <section data-background-color="#0b1220">
   <h2>System architecture — three tiers</h2>
@@ -226,7 +254,31 @@
         <tr><td>LEWANSOUL xArm 1S</td><td>~8,500</td><td>6</td><td>No</td></tr>
         <tr><td>Dobot Magician Lite</td><td>~17,000</td><td>4</td><td>No</td></tr>
       </table>
-      <p class="tiny" style="margin-top:.6em;">~63–82% cheaper than commercial arms — and the only one with built-in vision.</p>
+      <div class="flow" style="margin-top:.5em; gap:8px;">
+        <div class="box" style="padding:6px;">
+          <img src="img/compare-thisstudy.jpg" alt="This study — 3D-printed arm"
+               style="width:100%; border-radius:6px;"
+               onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+          <span style="display:none; font-size:.9em; color:#f59e0b;">[add img/compare-thisstudy.jpg]</span>
+          <div class="tiny" style="margin-top:3px;">This study · ₱3,116</div>
+        </div>
+        <div class="box" style="padding:6px;">
+          <img src="img/compare-dobot.jpg" alt="Dobot Magician Lite"
+               style="width:100%; border-radius:6px;"
+               onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+          <span style="display:none; font-size:.9em; color:#f59e0b;">[add img/compare-dobot.jpg]</span>
+          <div class="tiny" style="margin-top:3px;">Dobot Lite · ~₱17,000</div>
+        </div>
+        <div class="box" style="padding:6px;">
+          <img src="img/compare-lewansoul.jpg" alt="LEWANSOUL xArm 1S"
+               style="width:100%; border-radius:6px;"
+               onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+          <span style="display:none; font-size:.9em; color:#f59e0b;">[add img/compare-lewansoul.jpg]</span>
+          <div class="tiny" style="margin-top:3px;">xArm 1S · ~₱8,500</div>
+        </div>
+      </div>
+      <p class="tiny" style="margin-top:.5em;">~63–82% cheaper than commercial arms — and the only one with built-in vision.</p>
+      <p class="tiny" style="color:#475569;">Product photos: manufacturer / retailer listings, 2026.</p>
     </div>
   </div>
   <aside class="notes">
@@ -262,9 +314,12 @@
       <p>Blocks snap like LEGO, type-checked by shape:</p>
       <p><span class="tag">move to pose</span><span class="tag">open/close claw</span><span class="tag">wait</span></p>
       <p><span class="tag">camera sees…</span><span class="tag">forever</span><span class="tag">if / else</span></p>
-      <p class="tiny">Manual UI: ESP32 hosts an embedded page at <b>192.168.4.1</b> — five joint
+      <p class="tiny">Manual UI: ESP32 hosts an embedded page at <b>192.168.4.1</b> — joint
          sliders + Manual/Auto + Reset, over <b>WebSocket</b> (persistent, no per-request HTTP).
          Latency is bounded only by the local WiFi link — no cloud hop.</p>
+      <p class="tiny">Gripper uses three tuned presets — <b>open 30° / close-narrow 10° / close-wide 13°</b>
+         — shared by the robot page, Teach Poses, and programs. The live runner even
+         <b>auto-sizes the close angle by detected piece width</b> (1-stud → narrow, 2-stud → wide).</p>
       <p class="tiny">Two run modes: compile to C++ &amp; flash, OR run live in the browser
          (interpreter drives the arm over the same WebSocket — instant iteration).</p>
     </div>
@@ -368,9 +423,9 @@
     <tr><td>Servos buzz/jam into end-stops; MG996R overheats (~2.5 A stall)</td>
         <td>Narrowed PWM range 100–500 → 150–450 counts</td><td>No end-stop stalling; rail stopped sagging</td></tr>
     <tr><td>All 5 servos start at once → ground bounce → board resets</td>
-        <td>Move one joint per tick (serialized slewer)</td><td>Resets eliminated</td></tr>
+        <td>Move one joint per tick (serialized slewer, configurable order)</td><td>Resets eliminated</td></tr>
     <tr><td>Gripper stalls on object → starves shoulder</td>
-        <td>Close angle set safely (not 0°); travel capped</td><td>Shoulder lifts freely; no brownout</td></tr>
+        <td>Tuned CLOSE angle per piece width (10/13°, not 0°); travel capped</td><td>Shoulder lifts freely; drove the 92.5% (SO3)</td></tr>
     <tr><td>Servo spikes couple into ESP32 logic rail</td>
         <td>Separate 5V/3A servo supply via PCA9685 V+</td><td>No further spurious resets</td></tr>
     <tr><td>Browser blocks direct cam fetch (CORS)</td>
@@ -382,6 +437,11 @@
     target instead of stalling), NOT electrical current sensing. There is no ADC on the servo
     line. If asked "how do you detect a stall?" — we don't measure current; we avoid commanding
     a stalling angle. The ~2.5 A figure is the MG996R's stall current we observed, not a live reading.
+    The paper (SO3) states the 92.5% sorting rate "was driven by mechanical tuning of the gripper
+    CLOSE angle and calibration of the pick/place poses" — so this row is the direct cause of the
+    headline result. Close angles are per width: narrow 10° (1-stud), wide 13° (2-stud). The
+    serialized slewer moves one joint per tick in a configurable order; note it is NOT soft-ramping
+    (that's listed as future work) — it's fixed-step, staggered to kill the current surge.
   </aside>
 </section>
 
