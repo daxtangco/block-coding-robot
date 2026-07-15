@@ -365,6 +365,17 @@ def run_setup(project_root: Path, log,
     else:
         log(".venv already exists — reusing it.")
 
+    if not doctor.internet_reachable():
+        if doctor.check_arm_reachable().status == "ok":
+            log("❌ No internet: you're connected to the robot's WiFi "
+                "(ROBOTARM-XXXX), which has no internet. Switch to your normal "
+                "WiFi, then click Set up again. (Connect to the robot only when "
+                "you're ready to drive it.)")
+        else:
+            log("❌ No internet connection. Connect to WiFi (not the robot's "
+                "network), then click Set up again.")
+        return False
+
     if not pip_install(root, list(req_files), log):
         return False
 
