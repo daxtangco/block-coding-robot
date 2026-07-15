@@ -90,7 +90,11 @@ Blockly.Arduino['open_claw'] = function(block) {
 };
 
 Blockly.Arduino['close_claw'] = function(block) {
-    return 'closeClaw();\n';
+    // NARROW grips tighter (10°); AUTO/WIDE use the wide-safe closeClaw() — the
+    // on-board program has no vision, so AUTO falls back to wide.
+    return block.getFieldValue('GRIP') === 'NARROW'
+        ? 'closeClawNarrow();\n'
+        : 'closeClaw();\n';
 };
 
 Blockly.Arduino['wait_for_arm'] = function(block) {

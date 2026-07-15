@@ -10,7 +10,8 @@
 // the firmware's {type:'done'} ACK before advancing, so moves never overlap.
 
 import { sendServo, isConnected, onRobotMessage,
-         GRIPPER_CH, GRIPPER_OPEN, gripperCloseForClass } from './robot-link.js';
+         GRIPPER_CH, GRIPPER_OPEN, gripperCloseForClass,
+         GRIPPER_CLOSE_NARROW, GRIPPER_CLOSE_WIDE } from './robot-link.js';
 import { getLatestDetection } from './vision-state.js';
 import { getPoses } from './pose-teaching.js';
 
@@ -20,7 +21,7 @@ import { getPoses } from './pose-teaching.js';
 // bottom out early and the servo stalls — drawing max current on the shared
 // supply and starving the shoulder on the next lift.
 
-const MOVE_TIMEOUT_MS = 13000;  // > firmware's 11s slewBlocking ceiling
+const MOVE_TIMEOUT_MS = 22000;  // > firmware's 20s slewBlocking ceiling (joints move one at a time)
 
 let running = false;
 let onLog = () => {};
@@ -143,11 +144,23 @@ async function execBlock(block) {
             await awaitMove(() => sendServo(GRIPPER_CH, GRIPPER_OPEN));
             break;
         case 'close_claw': {
-            // Choose the close angle from the piece under the camera so a wide
-            // brick doesn't stall the servo (see gripperCloseForClass).
-            const seen = topDetectionClass();
-            const angle = gripperCloseForClass(seen);
-            onLog(`close claw${seen ? ` (${seen} → ${angle}°)` : ''}`, false);
+            // Grip width: (auto) sizes from the piece under the camera so a wide
+            // brick doesn't stall the servo (see gripperCloseForClass); narrow/
+            // wide force a fixed angle regardless of what's detected.
+            const grip = block.getFieldValue('GRIP') || 'AUTO';
+            let angle, note;
+            if (grip === 'NARROW') {
+                angle = GRIPPER_CLOSE_NARROW;
+                note = ` (narrow → ${angle}°)`;
+            } else if (grip === 'WIDE') {
+                angle = GRIPPER_CLOSE_WIDE;
+                note = ` (wide → ${angle}°)`;
+            } else {
+                const seen = topDetectionClass();
+                angle = gripperCloseForClass(seen);
+                note = seen ? ` (${seen} → ${angle}°)` : '';
+            }
+            onLog(`close claw${note}`, false);
             await awaitMove(() => sendServo(GRIPPER_CH, angle));
             break;
         }
