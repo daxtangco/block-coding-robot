@@ -134,6 +134,18 @@
                             <span id="pose-conn-status" class="pose-conn-status disconnected">Not connected — sliders won't move the arm</span>
                         </div>
 
+                        <div class="gripper-buttons pose-mode-bar">
+                            <button type="button" id="pose-mode-manual" class="btn-secondary active">Manual</button>
+                            <button type="button" id="pose-mode-auto" class="btn-secondary">Auto</button>
+                            <button type="button" id="pose-reset-btn" class="btn-secondary">Reset</button>
+                        </div>
+
+                        <div class="move-order">
+                            <h3>Move order</h3>
+                            <p class="help-text">The order joints ease into a pose, one at a time. Top moves first. (Gripper is controlled by open/close.)</p>
+                            <ol id="joint-order-list" class="joint-order-list"></ol>
+                        </div>
+
                         <div class="pose-editor">
                             <div class="servo-controls">
                                 <div class="servo-control">

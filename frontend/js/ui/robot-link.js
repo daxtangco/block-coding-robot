@@ -47,6 +47,11 @@ let ws = null;
 let connected = false;
 let reconnectTimer = null;
 
+// Desired joint move order (servo channels; see setJointOrder). Re-sent to the
+// board on every (re)connect so a reboot/reflash restores the user's choice.
+// Default matches the firmware default: wrist, elbow, shoulder, base, gripper.
+let desiredJointOrder = [3, 2, 1, 0, 4];
+
 // Subscribers get every parsed message from the board: {type:'state',...},
 // {type:'done'}, etc. Connection-state changes are delivered as a synthetic
 // {type:'__conn', connected:bool, reason:string}.
@@ -85,6 +90,9 @@ export function connectRobot() {
         // Put the board in manual mode so it accepts our servo commands (auto mode
         // runs the compiled student program instead).
         ws.send(JSON.stringify({ type: 'mode', auto: false }));
+        // Restore the saved joint move order (the board resets to its firmware
+        // default on reboot/reflash).
+        ws.send(JSON.stringify({ type: 'jointorder', order: desiredJointOrder }));
         emit({ type: '__conn', connected: true, reason: 'open' });
     };
 
@@ -112,6 +120,24 @@ export function connectRobot() {
 export function setMode(auto) {
     if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'mode', auto }));
+    }
+}
+
+// Reset the arm to its firmware default positions. The board applies the
+// defaults and broadcasts a fresh {type:'state'} so listeners re-adopt.
+export function sendReset() {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'reset' }));
+    }
+}
+
+// Set the order joints ease into a pose (array of servo channels, a permutation
+// of 0..4). Remembered so it's re-applied on reconnect, and pushed live now if
+// connected. The firmware validates it's a full permutation before accepting.
+export function setJointOrder(order) {
+    desiredJointOrder = order.slice();
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'jointorder', order: desiredJointOrder }));
     }
 }
 

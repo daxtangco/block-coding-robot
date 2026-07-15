@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 
 from backend.services.storage import load_settings, save_settings
 
@@ -12,6 +12,9 @@ class SettingsModel(BaseModel):
     blynk_template_id: str
     blynk_template_name: str
     blynk_auth_token: str
+    # Order joints ease into a pose (servo channels, a permutation of 0..4).
+    # Optional so older clients that omit it still validate.
+    joint_order: Optional[List[int]] = None
 
 @router.get("/settings")
 async def get_settings(project_name: str = "default"):

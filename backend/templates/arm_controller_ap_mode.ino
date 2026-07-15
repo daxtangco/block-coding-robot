@@ -103,7 +103,8 @@ const char EMBEDDED_HTML[] PROGMEM = R"rawliteral(
             <label>Gripper</label>
             <div class="gripper-row">
                 <button id="grip-open" class="btn-grip" disabled>Open</button>
-                <button id="grip-close" class="btn-grip" disabled>Close</button>
+                <button id="grip-close-narrow" class="btn-grip" disabled>Close (narrow)</button>
+                <button id="grip-close-wide" class="btn-grip" disabled>Close (wide)</button>
             </div>
         </div>
 
@@ -121,18 +122,21 @@ const char EMBEDDED_HTML[] PROGMEM = R"rawliteral(
         const sliders = [0,1,2,3].map(i => document.getElementById('s'+i));
         const values = [0,1,2,3].map(i => document.getElementById('v'+i));
         const gripOpen = document.getElementById('grip-open');
-        const gripClose = document.getElementById('grip-close');
+        const gripCloseNarrow = document.getElementById('grip-close-narrow');
+        const gripCloseWide = document.getElementById('grip-close-wide');
         const GRIPPER_CH = 4;
-        // Keep these in sync with the C++ GRIPPER_OPEN/GRIPPER_CLOSE constants
-        // below — the manual buttons here and closeClaw()/openClaw() in programs
-        // must command the same angles.
+        // Three grip presets, matching the IDE Teach Poses tab and the C++
+        // GRIPPER_* constants below. Narrow grips thin 1-stud pieces firmly;
+        // wide stops short so the servo doesn't stall on a thick 2-stud piece.
         const GRIPPER_OPEN = 30;
-        const GRIPPER_CLOSE = 15;
+        const GRIPPER_CLOSE_NARROW = 10;
+        const GRIPPER_CLOSE_WIDE = 15;
 
         function setEnabled(on) {
             sliders.forEach(s => s.disabled = !on);
             gripOpen.disabled = !on;
-            gripClose.disabled = !on;
+            gripCloseNarrow.disabled = !on;
+            gripCloseWide.disabled = !on;
         }
 
         function connect() {
@@ -156,10 +160,14 @@ const char EMBEDDED_HTML[] PROGMEM = R"rawliteral(
                             sliders[i].value = angle;
                             values[i].textContent = angle + '°';
                         } else {
-                            // Gripper: reflect open/close from the reported angle.
-                            const open = angle >= (GRIPPER_OPEN + GRIPPER_CLOSE) / 2;
-                            gripOpen.classList.toggle('active', open);
-                            gripClose.classList.toggle('active', !open);
+                            // Gripper: highlight whichever preset the reported
+                            // angle is nearest to (it may be mid-slew).
+                            const presets = [GRIPPER_OPEN, GRIPPER_CLOSE_NARROW, GRIPPER_CLOSE_WIDE];
+                            let nearest = presets[0];
+                            for (const p of presets) if (Math.abs(angle - p) < Math.abs(angle - nearest)) nearest = p;
+                            gripOpen.classList.toggle('active', nearest === GRIPPER_OPEN);
+                            gripCloseNarrow.classList.toggle('active', nearest === GRIPPER_CLOSE_NARROW);
+                            gripCloseWide.classList.toggle('active', nearest === GRIPPER_CLOSE_WIDE);
                         }
                     });
                 }
@@ -190,8 +198,9 @@ const char EMBEDDED_HTML[] PROGMEM = R"rawliteral(
             slider.onchange = () => sendServo(i, parseInt(slider.value));
         });
 
-        gripOpen.onclick = () => sendServo(GRIPPER_CH, GRIPPER_OPEN);
-        gripClose.onclick = () => sendServo(GRIPPER_CH, GRIPPER_CLOSE);
+        gripOpen.onclick        = () => sendServo(GRIPPER_CH, GRIPPER_OPEN);
+        gripCloseNarrow.onclick = () => sendServo(GRIPPER_CH, GRIPPER_CLOSE_NARROW);
+        gripCloseWide.onclick   = () => sendServo(GRIPPER_CH, GRIPPER_CLOSE_WIDE);
 
         document.getElementById('manual').onclick = () => {
             if(ws && ws.readyState === 1) ws.send(JSON.stringify({type:'mode', auto:false}));
@@ -289,7 +298,11 @@ const bool SERVO_INVERTED[5] = {false, true, false, true, false};
 // 2-stud brick (thinner pieces just grip a little looser here). The live block
 // runner in the browser DOES size the close angle per detected class — see
 // gripperCloseForClass() in frontend/js/ui/robot-link.js (narrow=10, wide=15).
-const int GRIPPER_CLOSE = 15;
+// closeClaw() uses the single wide-safe GRIPPER_CLOSE. GRIPPER_CLOSE_NARROW is
+// documented here for parity with the remote page's three grip presets (the
+// manual buttons send raw angles, so behavior doesn't depend on this constant).
+const int GRIPPER_CLOSE_NARROW = 10;
+const int GRIPPER_CLOSE = 15;   // = wide, used by closeClaw()
 const int GRIPPER_OPEN  = 30;
 
 // Default ("home") servo positions: base 90 (physical center), shoulder 90,
@@ -329,6 +342,12 @@ bool movePending = false;
 // keeps motion continuous and out of the deadband, exactly like a hand drag.
 const int AUTO_SLEW_STEP = SLEW_STEP;
 const unsigned long AUTO_SLEW_INTERVAL = SLEW_INTERVAL;
+
+// Order joints are eased in (one at a time — see updateServos). Values are
+// servo channels: 0=base 1=shoulder 2=elbow 3=wrist 4=gripper. Default is
+// wrist, elbow, shoulder, base, gripper. The IDE can change this live via a
+// {type:'jointorder'} WebSocket message; it must stay a permutation of 0..4.
+int jointOrder[5] = {3, 2, 1, 0, 4};
 
 // Pose definitions (generated from IDE)
 {{POSE_DEFINITIONS}}
@@ -373,7 +392,8 @@ void setServoAngle(uint8_t servo, int angle) {
 // board (confirmed via serial). Serializing the motion removes that surge.
 // Single-joint moves (a normal slider drag) are unaffected.
 bool updateServos(int maxStep = SLEW_STEP) {
-  for (int i = 0; i < 5; i++) {
+  for (int k = 0; k < 5; k++) {
+    int i = jointOrder[k];  // move joints in the configured order, not 0..4
     if (currentPos[i] == targetPos[i]) continue;
     int diff = targetPos[i] - currentPos[i];
     int step = constrain(diff, -maxStep, maxStep);
@@ -385,9 +405,11 @@ bool updateServos(int maxStep = SLEW_STEP) {
 
 // Block until all servos reach their targets (used by auto-mode helpers that
 // must finish a move before the next program step). Timeout is a safety net:
-// joints now move one at a time (see updateServos), so a worst-case 5-joint
-// pose change of ~90° each takes ~5 × 0.7s ≈ 3.4s. 6s leaves ample headroom.
-void slewBlocking(unsigned long timeoutMs = 11000) {
+// joints move ONE AT A TIME (see updateServos), so the worst case is the sum of
+// all five joints' travel, not the largest. At 1°/20ms, a full 180° joint is
+// ~3.6s, so five near-full-travel joints ≈ 18s. 20s leaves headroom without
+// hanging forever if a joint physically can't reach its target.
+void slewBlocking(unsigned long timeoutMs = 20000) {
   unsigned long start = millis();
   // Bail out if the user leaves auto mode (Manual button) — otherwise a move in
   // progress would finish on its own and ignore the mode switch.
@@ -398,13 +420,17 @@ void slewBlocking(unsigned long timeoutMs = 11000) {
 
 // Send current state to all WebSocket clients
 void broadcastState() {
-  StaticJsonDocument<200> doc;
+  StaticJsonDocument<256> doc;
   doc["type"] = "state";
   JsonArray servos = doc.createNestedArray("servos");
   for (int i = 0; i < 5; i++) {
     servos.add(currentPos[i]);
   }
   doc["auto"] = autoMode;
+  JsonArray order = doc.createNestedArray("order");
+  for (int i = 0; i < 5; i++) {
+    order.add(jointOrder[i]);
+  }
 
   String json;
   serializeJson(doc, json);
@@ -459,6 +485,31 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
       }
       Serial.println("Reset to defaults");
       broadcastState();
+    }
+    else if (strcmp(type, "jointorder") == 0) {
+      // Set the joint move order. Only accept a full permutation of 0..4 — a
+      // malformed order that drops a channel would leave that joint out of the
+      // slew loop, so it could never reach its target (move would hang).
+      JsonArray order = doc["order"];
+      if (order.size() == 5) {
+        int candidate[5];
+        bool seen[5] = {false, false, false, false, false};
+        bool valid = true;
+        for (int i = 0; i < 5; i++) {
+          int ch = order[i];
+          if (ch < 0 || ch > 4 || seen[ch]) { valid = false; break; }
+          seen[ch] = true;
+          candidate[i] = ch;
+        }
+        if (valid) {
+          for (int i = 0; i < 5; i++) jointOrder[i] = candidate[i];
+          Serial.printf("Joint order -> %d %d %d %d %d\n",
+                        jointOrder[0], jointOrder[1], jointOrder[2], jointOrder[3], jointOrder[4]);
+          broadcastState();
+        } else {
+          Serial.println("Ignored invalid jointorder (not a permutation of 0..4)");
+        }
+      }
     }
   }
 }
@@ -598,6 +649,14 @@ void openClaw() {
 
 void closeClaw() {
   setServoAngle(SERVO_GRIPPER, GRIPPER_CLOSE);
+  slewBlocking();
+  delay(200);
+}
+
+// Tighter grip for thin 1-stud pieces. Called by the `close claw = narrow`
+// block; the wide-safe closeClaw() above handles (auto) and wide.
+void closeClawNarrow() {
+  setServoAngle(SERVO_GRIPPER, GRIPPER_CLOSE_NARROW);
   slewBlocking();
   delay(200);
 }

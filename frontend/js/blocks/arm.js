@@ -34,11 +34,18 @@ Blockly.Blocks['open_claw'] = {
 Blockly.Blocks['close_claw'] = {
     init: function() {
         this.appendDummyInput()
-            .appendField("close claw");
+            .appendField("close claw")
+            .appendField(new Blockly.FieldDropdown([
+                ["(auto)", "AUTO"],
+                ["narrow", "NARROW"],
+                ["wide", "WIDE"],
+            ]), "GRIP");
         this.setPreviousStatement(true, null);
         this.setNextStatement(true, null);
         this.setColour('#5C81A6');
-        this.setTooltip("Close the gripper claw");
+        this.setTooltip("Close the gripper. (auto) picks narrow/wide from the piece " +
+            "the camera sees; narrow (10°) grips thin 1-stud pieces, wide (15°) " +
+            "stops short so a thick 2-stud piece doesn't stall the servo.");
     }
 };
 

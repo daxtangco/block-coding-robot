@@ -23,6 +23,8 @@ def load_settings(project_name: str = "default") -> Dict[str, Any]:
         "blynk_template_id": "",
         "blynk_template_name": "",
         "blynk_auth_token": "",
+        # Joint move order (servo channels): wrist, elbow, shoulder, base, gripper.
+        "joint_order": [3, 2, 1, 0, 4],
     }
 
 def save_settings(settings: Dict[str, Any], project_name: str = "default"):

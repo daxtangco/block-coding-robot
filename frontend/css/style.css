@@ -438,6 +438,33 @@ body {
     border-color: var(--success-color, #10b981);
 }
 
+/* Joint move-order reorder list (Teach Poses tab) */
+.move-order { margin: 1rem 0; }
+.joint-order-list {
+    list-style: none;
+    counter-reset: joint;
+    padding: 0;
+    margin: 0.5rem 0 0;
+}
+.joint-order-item {
+    counter-increment: joint;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.4rem 0.6rem;
+    margin-bottom: 0.4rem;
+    border: 1px solid var(--border-color, #cbd5e1);
+    border-radius: 6px;
+}
+.joint-order-name::before {
+    content: counter(joint) ". ";
+    color: #64748b;
+    font-weight: 600;
+}
+.joint-order-actions { display: flex; gap: 0.35rem; }
+.joint-order-actions button { padding: 0.2rem 0.6rem; }
+
 .pose-actions {
     display: flex;
     gap: 1rem;
