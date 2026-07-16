@@ -1,0 +1,20 @@
+<Configuration>
+  <!-- Windows Sandbox config for testing the Block Robot launcher on a clean,
+       zero-dependency Windows. Double-click this file to boot a throwaway
+       Sandbox with the test folder already on the desktop.
+
+       IMPORTANT: the HostFolder below must EXIST before launching, or Sandbox
+       refuses to start. Create it once and drop Block-Robot.exe inside:
+         C:\Users\DaxAxisTangco\Downloads\blockrobot-test
+       (or edit the path to match your machine).
+
+       See packaging/SANDBOX_TESTING.md for the full test procedure. -->
+  <MappedFolders>
+    <MappedFolder>
+      <HostFolder>C:\Users\DaxAxisTangco\Downloads\blockrobot-test</HostFolder>
+      <SandboxFolder>C:\Users\WDAGUtilityAccount\Desktop\blockrobot</SandboxFolder>
+      <ReadOnly>true</ReadOnly>
+    </MappedFolder>
+  </MappedFolders>
+  <Networking>Enable</Networking>
+</Configuration>
