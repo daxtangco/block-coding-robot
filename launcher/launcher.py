@@ -101,6 +101,7 @@ class LauncherApp:
                                              bg="#020617", fg="#e2e8f0",
                                              font=("Consolas", 9))
         self.log.pack(side="right", fill="both", expand=True)
+        self.log.tag_config("link", foreground="#60a5fa", underline=True)
 
         # Indeterminate progress bar: shows the app is alive during the long
         # (possibly throttled) esp32 core download, which prints little output.
@@ -119,11 +120,26 @@ class LauncherApp:
     def _log(self, msg: str):
         self.q.put(msg)
 
+    def _log_link(self, text: str, url: str):
+        """Enqueue a clickable link line; rendered on the main thread by _drain."""
+        self.q.put(("link", text, url))
+
+    def _insert_link(self, text: str, url: str):
+        tag = f"link-{self.log.index('end')}"
+        self.log.insert("end", text + "\n", ("link", tag))
+        self.log.tag_bind(tag, "<Button-1>", lambda e: webbrowser.open(url))
+        self.log.tag_bind(tag, "<Enter>",
+                          lambda e: self.log.config(cursor="hand2"))
+        self.log.tag_bind(tag, "<Leave>", lambda e: self.log.config(cursor=""))
+
     def _drain(self):
         try:
             while True:
-                line = self.q.get_nowait()
-                self.log.insert("end", line + "\n")
+                item = self.q.get_nowait()
+                if isinstance(item, tuple) and item and item[0] == "link":
+                    self._insert_link(item[1], item[2])
+                else:
+                    self.log.insert("end", item + "\n")
                 self.log.see("end")
         except queue.Empty:
             pass
@@ -225,7 +241,9 @@ class LauncherApp:
 
             ports = [p for p in list_serial_ports() if p.get("port")]
             if not ports:
-                self._log("❌ No serial port found. Plug in the ESP32 over USB, then Re-check.")
+                self._log(doctor.NO_SERIAL_HINT)
+                self._log_link("   → Download the USB driver (CP210x / CH340)",
+                               doctor.USB_DRIVER_URL)
                 return
             port = ports[0]["port"]
             sketch = (self.proj / get_template_path(use_ap_mode=True)).resolve()
