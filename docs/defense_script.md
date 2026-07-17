@@ -394,8 +394,14 @@ Camera sees, PC thinks, arm acts. Thank you — we welcome your questions."
 - **Why AP mode over cloud?** Works offline, no accounts, one room per robot.
 - **Can students use their own objects?** Yes — the Train Model tab takes a YOLOv8-format dataset
   (e.g. a Roboflow export), fine-tunes YOLOv8n, then copies best.pt → models/lego_detector.pt and
-  calls detection.reload(), so it becomes the live detector with no restart. Same pipeline as our
-  own 6-class model.
+  calls detection.reload(), so it becomes the live detector with no restart.
+- **Is the Train Model tab how you got the 95.57% model? / Same model?** No — two different
+  training paths, same YOLOv8n *architecture*. (1) Our **deployed 95.57% model** came from the
+  **Colab notebook (LEGO_Detection_Training_v3)**: a **two-stage GPU** run — Stage 1 100 epochs
+  (freeze-10) → Stage 2 50 epochs fine-tune, on a Tesla T4. (2) The in-app **Train Model tab** is
+  the *classroom feature* — a **single-stage CPU** retrain from plain yolov8n.pt COCO weights, so
+  students can add their own objects. It proves the retrain→deploy pipeline works, but it is NOT
+  how we produced the headline model and wouldn't reach 95.57% on CPU single-stage.
 - **How does a trained model go live?** Automatically — trainer.py copies the new best.pt to the
   canonical path and hot-reloads the detection service; the next /detect frame uses it.
 - **Dataset?** spiled-lego-bricks (Kaggle), ~3,000 images / 9,600 annotations, 70/15/15.
