@@ -41,7 +41,7 @@ const bool SERVO_INVERTED[5] = {false, true, false, true, false};
 
 // Gripper open/close angles.
 const int GRIPPER_OPEN  = 30;
-const int GRIPPER_CLOSE = 15;
+const int GRIPPER_CLOSE = 13;
 
 // Default ("home") positions.
 const int DEFAULT_POSITIONS[5] = {90, 90, 90, 60, 0};
