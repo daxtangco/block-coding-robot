@@ -508,7 +508,7 @@ section.has-light-background, section.has-light-background h1, section.has-light
   <h2 class="center">The scoreboard — 5 for 5</h2>
   <div class="kpi" style="margin-top:.5em;">
     <div class="k"><b>₱3,116</b><span>cost — target ≤3,500</span></div>
-    <div class="k"><b>98.8%</b><span>detection mAP — target 70</span></div>
+    <div class="k"><b>95.6%</b><span>detection mAP — target 70</span></div>
     <div class="k"><b>92.5%</b><span>real sorting — target ≥90%</span></div>
     <div class="k"><b>4 modules</b><span>Grade 7–10 manual</span></div>
     <div class="k"><b>SUS 71.3</b><span>usability — "Good" (&gt;68)</span></div>
@@ -531,7 +531,7 @@ section.has-light-background, section.has-light-background h1, section.has-light
         <td>Grade 7–10 curriculum + block-coding IDE — <b class="ok">SUS 71.3</b>, 90% ↑ interest</td></tr>
     <tr><td>Vision pick-and-place — <b>Aldea (2022)</b> YOLOv5 <b>88%</b>, Arévalo-Hernández (2023), Mada Sanjaya (2021)</td>
         <td>Affordability vs. accuracy; adaptability across levels</td>
-        <td>YOLOv8n <b class="ok">98.8% mAP</b>, <b class="ok">92.5%</b> real sorting — beats Aldea's 88%</td></tr>
+        <td>YOLOv8n <b class="ok">95.6% mAP</b>, <b class="ok">92.5%</b> real sorting — beats Aldea's 88%</td></tr>
     <tr><td>Low-cost / 3D-printed arms — Mick <em class="q">Reachy</em> (2022), Ali (2020), Adediran (2024)</td>
         <td>Cost vs. capability; few pair low cost <em>with</em> vision</td>
         <td><b class="ok">PHP 3,116</b> 5-DOF — the <b>only vision-capable</b> arm in Table 6.5</td></tr>
@@ -544,7 +544,7 @@ section.has-light-background, section.has-light-background h1, section.has-light
     From Chapter 2 (Review of Related Literature) and Table 2.1 (Comparative Analysis of 25 studies,
     PRISMA-selected). The strongest single comparison is Aldea et al. (2022) — a prior DLSU
     joystick 4-DOF arm with YOLOv5 that hit 88% grasp-and-dispose; our block-coded 5-DOF arm with
-    YOLOv8n reached 92.5% real sorting AND 98.8% detection mAP. The recurring gap across all four
+    YOLOv8n reached 92.5% real sorting AND 95.6% detection mAP. The recurring gap across all four
     themes is affordable + accessible + curriculum-backed — which is exactly SO1/SO4/SO5.
   </aside>
 </section>
@@ -846,36 +846,38 @@ section.has-light-background, section.has-light-background h1, section.has-light
 <!-- 11 · DETECTION RESULTS (SO2 part 2) -->
 <section data-background-color="#0b1220">
   <span class="demo-badge">🖥️ LIVE DEMO — Vision tab</span>
-  <h2>It sees the pieces — 98.8% accurate</h2>
+  <h2>It sees the pieces — 95.6% accurate</h2>
   <div class="two small">
     <div>
       <div class="kpi" style="justify-content:flex-start; margin-top:.2em;">
-        <div class="k"><b>98.8%</b><span>mAP@0.5 — target was 70</span></div>
-        <div class="k"><b>95.7%</b><span>mAP@0.5:0.95</span></div>
+        <div class="k"><b>95.6%</b><span>mAP@0.5 — target was 70</span></div>
+        <div class="k"><b>91.1%</b><span>mAP@0.5:0.95</span></div>
       </div>
-      <p class="small" style="margin-top:.6em;"><b>YOLOv8n</b> · <b>6 classes</b>, all &gt;98% · <b>~123 FPS</b>.</p>
+      <p class="small" style="margin-top:.6em;"><b>YOLOv8n</b> · <b>6 classes</b> · Precision <b>0.897</b> · Recall <b>0.909</b> · F1 <b>0.903</b>.</p>
       <p class="demo-cue"><b>Show:</b> hold a LEGO piece to the camera → live box + bin.</p>
     </div>
     <div>
       <table style="font-size:.7em;">
-        <tr><th>Class</th><th>P</th><th>R</th><th>AP@.5</th></tr>
-        <tr><td>brick_1x6</td><td>.983</td><td>.989</td><td>99.4</td></tr>
-        <tr><td>brick_2x2</td><td>.946</td><td>.961</td><td>98.3</td></tr>
-        <tr><td>brick_2x4</td><td>.953</td><td>.949</td><td>98.7</td></tr>
-        <tr><td>plate_1x2</td><td>.968</td><td>.939</td><td>98.2</td></tr>
-        <tr><td>plate_2x2</td><td>.943</td><td>.946</td><td>98.7</td></tr>
-        <tr><td>plate_2x4</td><td>.959</td><td>.987</td><td>99.3</td></tr>
-        <tr><td><b>Overall</b></td><td><b>.959</b></td><td><b>.962</b></td><td><b>98.8</b></td></tr>
+        <tr><th>Class</th><th>AP@.5</th></tr>
+        <tr><td>brick_1x6</td><td>94.5</td></tr>
+        <tr><td>brick_2x2</td><td>91.1</td></tr>
+        <tr><td>brick_2x4</td><td>92.3</td></tr>
+        <tr><td>plate_1x2</td><td>85.5</td></tr>
+        <tr><td>plate_2x2</td><td>90.0</td></tr>
+        <tr><td>plate_2x4</td><td>93.3</td></tr>
+        <tr><td><b>Overall</b></td><td><b>95.6</b></td></tr>
       </table>
     </div>
   </div>
-  <p class="tiny center">Beat the 70.0 target by <b>28.8 points</b>. CORS proxy forwards cam frames to the browser; YOLO runs on the PC (ESP32-CAM only supplies JPEGs).</p>
+  <p class="tiny center">Beat the 70.0 target by <b>25.6 points</b>. CORS proxy forwards cam frames to the browser; YOLO runs on the PC (ESP32-CAM only supplies JPEGs).</p>
   <aside class="notes">
-    Dataset: spiled-lego-bricks (Kaggle) — 3,031 imgs, 9,596 annotations, 70/15/15. Model YOLOv8n,
-    two-stage (100 ep freeze-10 → 50 ep fine-tune), trained on a Tesla T4 in Colab, ~2–4 h. All exact
-    from Tables 6.6/6.7. Honest nuance if pushed: 98.8% is on the held-out TEST split (456 images) —
-    clean, well-lit; real-world sorting (next slide) is where lighting bit us. 123 FPS is on the T4
-    GPU, not the classroom laptop.
+    Two-stage YOLOv8n (Stage 1: 100 ep freeze-10 → Stage 2: 50 ep fine-tune), trained on a Tesla T4
+    in Colab. Validated metrics: mAP@0.5 = 0.9557, mAP@0.5:0.95 = 0.9111, Precision 0.8970, Recall
+    0.9087, F1 0.9028 — all success criteria PASS (mAP 0.9557/0.70, P 0.8970/0.75, R 0.9087/0.70).
+    Per-class AP@0.5: brick_1x6 94.53, brick_2x2 91.09, brick_2x4 92.29, plate_1x2 85.45,
+    plate_2x2 89.99, plate_2x4 93.32 — plate_1x2 is the weakest (thin profile, hardest to localize).
+    Honest nuance if pushed: this is the held-out validation set (clean, well-lit); real-world
+    sorting (next slide) is where lighting bit us.
   </aside>
 </section>
 
@@ -1049,7 +1051,7 @@ section.has-light-background, section.has-light-background h1, section.has-light
   <ul class="small">
     <li><b>Vision-capable 5-DOF arm at ₱3,116</b> — cheaper than arms with no camera</li>
     <li><b>Blocks → real hardware</b>, with a browser interpreter for instant iteration</li>
-    <li><b>98.8% detection + 92.5% sorting</b> via a documented optimization pipeline</li>
+    <li><b>95.6% detection + 92.5% sorting</b> via a documented optimization pipeline</li>
     <li><b>Retrainable detection</b> — upload a dataset, it auto-deploys live</li>
     <li><b>Fully offline</b> + <b>one-click cross-platform launcher</b></li>
     <li><b>Grade 7–10 curriculum</b>, student-validated (SUS 71.3)</li>
@@ -1068,7 +1070,7 @@ section.has-light-background, section.has-light-background h1, section.has-light
     <tr><td>Custom detection needs an annotated dataset</td><td>Train Model retrains YOLOv8n on a YOLOv8-format dataset (e.g. a Roboflow export) — not a few-shot "show it once"</td></tr>
     <tr><td>Local-only control (no remote/internet)</td><td>By design — offline classroom; AP range ~one room</td></tr>
     <tr><td>Open-loop servos (no position feedback)</td><td>Hobby servos; we avoid stall by capping travel &amp; sizing grip, not by sensing current</td></tr>
-    <tr><td>98.8% mAP is on a clean test set</td><td>Real-world lighting is harder; two-stage training mitigates but doesn't erase the gap</td></tr>
+    <tr><td>95.6% mAP is on a clean validation set</td><td>Real-world lighting is harder; two-stage training mitigates but doesn't erase the gap</td></tr>
   </table>
   <aside class="notes">
     Volunteering limitations builds credibility. The open-loop / no-current-sensing point is
@@ -1096,7 +1098,7 @@ section.has-light-background, section.has-light-background h1, section.has-light
   <h2 class="center">Conclusion</h2>
   <p class="center small" style="margin-top:.4em;">
     A <b>PHP 3,116</b>, 3D-printed 5-DOF arm that a beginner can <b>program with blocks</b>,
-    <b>teach to see</b>, and run <b>entirely offline</b> — hitting <b>98.8% detection</b> and
+    <b>teach to see</b>, and run <b>entirely offline</b> — hitting <b>95.6% detection</b> and
     <b>92.5% sorting</b>, and validated with students. <b>All five objectives met.</b>
   </p>
   <p class="center" style="margin-top:.9em;">
