@@ -22,6 +22,16 @@ jobs:
         run: pip install pyinstaller
       - name: Build
         run: pyinstaller packaging/launcher.spec
+      # Give each OS a distinct filename. PyInstaller names the binary
+      # "Block-Robot" on macOS/Linux and "Block-Robot.exe" on Windows, so
+      # without this the mac and linux builds collide on the release (same
+      # name → one overwrites the other).
+      - name: Rename binary (macOS)
+        if: runner.os == 'macOS'
+        run: mv dist/Block-Robot dist/Block-Robot-macos
+      - name: Rename binary (Linux)
+        if: runner.os == 'Linux'
+        run: mv dist/Block-Robot dist/Block-Robot-linux
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:

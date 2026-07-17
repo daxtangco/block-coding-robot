@@ -44,7 +44,10 @@ computer figures out what's in it, and the arm acts on the result.
 1. Go to the [latest release](https://github.com/daxtangco/block-coding-robot/releases/latest)
    and download the file for your computer:
    - Windows: `Block-Robot.exe`
-   - macOS: `Block-Robot` (right-click → Open the first time)
+   - macOS: `Block-Robot-macos` (right-click → Open the first time)
+   - Linux: `Block-Robot-linux` (mark it executable: right-click →
+     Properties → Permissions → "Allow executing as program", or
+     `chmod +x Block-Robot-linux`)
 2. Double-click it. The launcher window opens. (The app and the detection
    model are bundled inside — no separate download needed.)
 3. Click **⚙️ Set up / update** once and wait — it builds a Python environment
