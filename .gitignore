@@ -56,6 +56,10 @@ yolov8m.pt
 # the thesis). Everything else *.pt (training scratch, base yolov8) stays out.
 !models/lego_detector.pt
 
+# Local model backups / scratch weights — keep out of the repo.
+*.bak
+models/best.pt
+
 # OS
 .DS_Store
 Thumbs.db
