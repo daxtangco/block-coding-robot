@@ -62,11 +62,15 @@ Plug each servo into PCA9685 channels:
 Servo Position → PCA9685 Channel
 ────────────────────────────────
 Base (rotation)  → Channel 0
-Shoulder         → Channel 1
-Elbow            → Channel 2
-Wrist            → Channel 3
-Gripper          → Channel 4
+Shoulder         → Channel 2
+Elbow            → Channel 4
+Wrist            → Channel 6
+Gripper          → Channel 8
 ```
+
+> **Note:** channels are spaced **0, 2, 4, 6, 8** to match the firmware's
+> `PWM_CHANNEL[5] = {0, 2, 4, 6, 8}` in `backend/templates/arm_controller_ap_mode.ino`.
+> If you plug a servo into a different channel, update that array to match.
 
 **Servo Connector Orientation:**
 Each servo has 3 wires (brown/red/orange or black/red/white).
