@@ -1,5 +1,6 @@
 import asyncio
 import sys
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 # Add project root to Python path
@@ -17,7 +18,19 @@ from backend.routes import build, settings, poses, detect, teach, programs, trai
 if sys.platform == 'win32':
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-app = FastAPI(title="Block Robot IDE", version="1.0.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Pre-load the detection model in a background thread so the first
+    # Vision-tab frame isn't hit with a ~3.5s cold start.
+    import threading
+    from backend.services import detection, teachable
+    threading.Thread(target=detection.warmup, daemon=True).start()
+    threading.Thread(target=teachable.warmup, daemon=True).start()
+    yield
+
+
+app = FastAPI(title="Block Robot IDE", version="1.0.0", lifespan=lifespan)
 
 # Enable CORS for local development
 app.add_middleware(
@@ -50,15 +63,6 @@ async def root():
 async def mobile():
     """Serve the lightweight phone Auto-Sort page (no full IDE)."""
     return FileResponse("frontend/mobile.html")
-
-@app.on_event("startup")
-async def warmup_detector():
-    """Pre-load the detection model in a background thread so the first
-    Vision-tab frame isn't hit with a ~3.5s cold start."""
-    import threading
-    from backend.services import detection, teachable
-    threading.Thread(target=detection.warmup, daemon=True).start()
-    threading.Thread(target=teachable.warmup, daemon=True).start()
 
 @app.get("/health")
 async def health_check():

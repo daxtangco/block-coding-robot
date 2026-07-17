@@ -1,5 +1,11 @@
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-pydantic==2.5.0
-python-multipart==0.0.6
-httpx==0.28.1
+# Version floors (not exact pins) so pip installs prebuilt wheels on new
+# Python releases. The old exact pins (fastapi 0.104 / pydantic 2.5) had no
+# wheels for Python 3.13+ and forced a from-source Rust build of pydantic-core
+# that fails without a C/Rust toolchain — the exact failure teachers hit when
+# they install the newest Python from python.org. These floors resolve to
+# cp313/cp314 wheels.
+fastapi>=0.115
+uvicorn[standard]>=0.30
+pydantic>=2.9
+python-multipart>=0.0.9
+httpx>=0.27
