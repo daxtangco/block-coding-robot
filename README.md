@@ -38,8 +38,10 @@ computer figures out what's in it, and the arm acts on the result.
 > **One thing to install first: Python 3.8+.** The launcher sets everything
 > else up for you, but it needs Python already on your computer to do it. Get
 > it from [python.org/downloads](https://www.python.org/downloads/) (on the
-> installer, tick **"Add Python to PATH"**). If you skip this, the launcher's
-> first check shows ❌ Python and tells you the same thing.
+> installer, tick **"Add Python to PATH"**). The **latest Python (3.13 / 3.14)
+> works fine** — just grab whatever python.org offers; no compiler or extra
+> tools needed. If you skip Python entirely, the launcher's first check shows
+> ❌ Python and tells you the same thing.
 
 1. Go to the [latest release](https://github.com/daxtangco/block-coding-robot/releases/latest)
    and download the file for your computer:
@@ -298,8 +300,21 @@ block-coding-robot/
 - Try a hard refresh in the browser: `Ctrl + F5`.
 
 **"Build & Flash" fails**
-- arduino-cli probably isn't installed yet — see [docs/ARDUINO_CLI_SETUP.md](docs/ARDUINO_CLI_SETUP.md).
+- arduino-cli probably isn't installed yet — click **🔧 Install robot tools** in
+  the launcher (or see [docs/ARDUINO_CLI_SETUP.md](docs/ARDUINO_CLI_SETUP.md)).
 - Make sure the ESP32 is plugged in and you picked the right port.
+- **No serial port shows up?** Usually a cable or driver issue: use a *data* USB
+  cable (not charge-only), then install the USB-to-serial driver for your board —
+  [Silicon Labs CP210x](https://www.silabs.com/developer-tools/usb-to-uart-bridge-vcp-drivers)
+  (or search "CH340 driver" for CH340 boards). Replug after installing. The
+  launcher shows this same guidance and a clickable driver link on the Flash step.
+
+**"⚙️ Set up / update" fails to download / install**
+- You're probably **offline**. Set up needs the internet the first time to
+  download the Python packages. Reconnect and try again.
+- Common gotcha: if you're joined to the robot's **`RobotArm-XXXX`** WiFi, that
+  network has **no internet** — switch back to normal WiFi to run Set up, then
+  rejoin the robot's network afterward. The launcher detects this and says so.
 
 **The Vision or Train Model tab shows an error about a missing module**
 - You likely skipped Part 2. Run `pip install -r requirements-vision.txt`.
