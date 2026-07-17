@@ -26,7 +26,7 @@ async def get_settings(project_name: str = "default"):
 async def update_settings(settings: SettingsModel, project_name: str = "default"):
     """Update project settings"""
     try:
-        save_settings(settings.dict(), project_name)
+        save_settings(settings.model_dump(), project_name)
         return {"status": "success", "message": "Settings saved successfully"}
     except Exception as e:
         raise HTTPException(500, f"Failed to save settings: {str(e)}")
