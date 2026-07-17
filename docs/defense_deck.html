@@ -859,12 +859,12 @@ section.has-light-background, section.has-light-background h1, section.has-light
     <div>
       <table style="font-size:.7em;">
         <tr><th>Class</th><th>AP@.5</th></tr>
-        <tr><td>brick_1x6</td><td>94.5</td></tr>
-        <tr><td>brick_2x2</td><td>91.1</td></tr>
-        <tr><td>brick_2x4</td><td>92.3</td></tr>
-        <tr><td>plate_1x2</td><td>85.5</td></tr>
-        <tr><td>plate_2x2</td><td>90.0</td></tr>
-        <tr><td>plate_2x4</td><td>93.3</td></tr>
+        <tr><td>brick_1x6</td><td>97.4</td></tr>
+        <tr><td>brick_2x2</td><td>94.9</td></tr>
+        <tr><td>brick_2x4</td><td>94.6</td></tr>
+        <tr><td>plate_1x2</td><td>94.7</td></tr>
+        <tr><td>plate_2x2</td><td>94.6</td></tr>
+        <tr><td>plate_2x4</td><td>97.2</td></tr>
         <tr><td><b>Overall</b></td><td><b>95.6</b></td></tr>
       </table>
     </div>
@@ -874,10 +874,11 @@ section.has-light-background, section.has-light-background h1, section.has-light
     Two-stage YOLOv8n (Stage 1: 100 ep freeze-10 → Stage 2: 50 ep fine-tune), trained on a Tesla T4
     in Colab. Validated metrics: mAP@0.5 = 0.9557, mAP@0.5:0.95 = 0.9111, Precision 0.8970, Recall
     0.9087, F1 0.9028 — all success criteria PASS (mAP 0.9557/0.70, P 0.8970/0.75, R 0.9087/0.70).
-    Per-class AP@0.5: brick_1x6 94.53, brick_2x2 91.09, brick_2x4 92.29, plate_1x2 85.45,
-    plate_2x2 89.99, plate_2x4 93.32 — plate_1x2 is the weakest (thin profile, hardest to localize).
-    Honest nuance if pushed: this is the held-out validation set (clean, well-lit); real-world
-    sorting (next slide) is where lighting bit us.
+    Per-class AP@0.5 (ultralytics mAP50): brick_1x6 97.4, brick_2x2 94.9, brick_2x4 94.6,
+    plate_1x2 94.7, plate_2x2 94.6, plate_2x4 97.2 — these average to the overall 95.57. (Note:
+    per-class AP@0.5:0.95 is lower — brick_1x6 94.5 down to plate_1x2 85.4 — those average to the
+    91.11; don't confuse the two columns.) Honest nuance if pushed: this is the held-out validation
+    set (clean, well-lit); real-world sorting (next slide) is where lighting bit us.
   </aside>
 </section>
 
