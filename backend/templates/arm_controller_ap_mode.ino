@@ -130,7 +130,7 @@ const char EMBEDDED_HTML[] PROGMEM = R"rawliteral(
         // wide stops short so the servo doesn't stall on a thick 2-stud piece.
         const GRIPPER_OPEN = 30;
         const GRIPPER_CLOSE_NARROW = 10;
-        const GRIPPER_CLOSE_WIDE = 15;
+        const GRIPPER_CLOSE_WIDE = 13;
 
         function setEnabled(on) {
             sliders.forEach(s => s.disabled = !on);
@@ -302,7 +302,7 @@ const bool SERVO_INVERTED[5] = {false, true, false, true, false};
 // documented here for parity with the remote page's three grip presets (the
 // manual buttons send raw angles, so behavior doesn't depend on this constant).
 const int GRIPPER_CLOSE_NARROW = 10;
-const int GRIPPER_CLOSE = 15;   // = wide, used by closeClaw()
+const int GRIPPER_CLOSE = 13;   // = wide, used by closeClaw()
 const int GRIPPER_OPEN  = 30;
 
 // Default ("home") servo positions: base 90 (physical center), shoulder 90,

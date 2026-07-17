@@ -26,7 +26,7 @@ export const GRIPPER_OPEN = 30;
 //                      reaches its target and never stalls.
 // Tune these two on the real arm; they're the only gripper numbers to touch.
 export const GRIPPER_CLOSE_NARROW = 10;
-export const GRIPPER_CLOSE_WIDE = 15;
+export const GRIPPER_CLOSE_WIDE = 13;
 // Default close (manual Teach Poses button, when no piece is known): use the
 // wider angle so a manual close can never stall on whatever is in the jaws.
 export const GRIPPER_CLOSE = GRIPPER_CLOSE_WIDE;
