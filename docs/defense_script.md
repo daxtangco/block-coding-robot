@@ -88,7 +88,7 @@ The next slide is the spine of this defense: we met all five."
 "Here are the headline numbers, and every single target was met or exceeded.
 
 - **SO1, cost:** PHP **3,116** — about 89% of the ceiling, so we came in *under* budget.
-- **SO2, detection:** **98.8%** mAP at 0.5 — against a target of 70. We beat it by nearly 29 points.
+- **SO2, detection:** **95.6%** mAP at 0.5 — against a target of 70. We beat it by ~25 points.
 - **SO3, sorting:** **92.5%** pick-and-place success — above the 90% target.
 - **SO4:** a complete **four-module** Grade 7–10 manual.
 - **SO5:** a **System Usability Scale score of 71.3** — rated 'Good', above the ~68 industry
@@ -113,7 +113,7 @@ curriculum and a block IDE, and our usability score was 71.3.
 **Vision-based pick-and-place** — this is the strongest comparison. A prior DLSU project, **Aldea et
 al. in 2022**, built a joystick-controlled 4-DOF arm with a YOLOv5 model and reached an **88%**
 grasp-and-dispose rate. Our block-coded 5-DOF arm with YOLOv8n reached **92.5% real sorting and
-98.8% detection** — a direct improvement over that predecessor.
+95.6% detection** — a direct improvement over that predecessor.
 
 **Low-cost and 3D-printed arms** — Mick's Reachy, Ali, and Adediran showed 3D printing cuts cost,
 but few pair low cost *with* vision. Ours is **PHP 3,116 and the only vision-capable arm** in our
@@ -236,12 +236,12 @@ We used the *spiled-lego-bricks* dataset from Kaggle — about 3,000 images, 9,6
 70/15/15. The model is **YOLOv8n**, trained in two stages — a frozen-backbone stage then fine-tuning
 — on a Tesla T4 in Colab.
 
-The result: **98.8% mAP at 0.5** overall, and 95.7% on the stricter 0.5-to-0.95 metric. Every one of
-the six classes scored above 98% AP. That beats the target of 70 by nearly 29 points, and it runs at
-about 123 frames per second on the T4.
+The result: **95.6% mAP at 0.5** overall, and 91.1% on the stricter 0.5-to-0.95 metric. Precision
+0.897, recall 0.909, F1 0.903 — every class lands in the high-80s to mid-90s AP. That beats the
+target of 70 by about 25 points.
 
-One honest note: that 98.8% is on the clean, held-out test split. Real-world sorting under classroom
-lighting is harder — which is exactly what the next slide addresses."
+One honest note: that 95.6% is on the clean, held-out validation set. Real-world sorting under
+classroom lighting is harder — which is exactly what the next slide addresses."
 
 ---
 
@@ -344,7 +344,7 @@ an async web server for firmware, and arduino-cli plus PyInstaller to build and 
 
 "To summarize our contributions: a **vision-capable 5-DOF arm at PHP 3,116**, cheaper than
 commercial arms that don't even have vision; a **block-coding IDE tied to real hardware** with a
-browser interpreter for instant iteration; **98.8% detection and 92.5% real sorting** through a
+browser interpreter for instant iteration; **95.6% detection and 92.5% real sorting** through a
 documented optimization pipeline; **retrainable detection** — upload a YOLOv8 dataset in the IDE
 and the fine-tuned model auto-deploys as the live detector with no restart; a **fully offline
 architecture** with a one-click launcher; and a **validated Grade 7–10 curriculum**."
@@ -375,7 +375,7 @@ study."
 **[Speaker 1]**
 
 "To conclude: we built a **PHP 3,116**, 3D-printed, 5-DOF arm that a beginner can **program with
-blocks, teach to see, and run entirely offline** — hitting **98.8% detection** and **92.5% sorting**,
+blocks, teach to see, and run entirely offline** — hitting **95.6% detection** and **92.5% sorting**,
 and validated with students. **All five objectives met.**
 
 Camera sees, PC thinks, arm acts. Thank you — we welcome your questions."
@@ -386,7 +386,7 @@ Camera sees, PC thinks, arm acts. Thank you — we welcome your questions."
 
 *Not presented — jump here on questions. Quick-reference answers:*
 - **Cost?** PHP 3,116, 89% of the 3,500 target; vs ~8,500 / ~17,000 commercial.
-- **Is 98.8% real-world?** It's the held-out test split; real sorting was 92.5%; the 9 misses were
+- **Is 95.6% real-world?** It's the held-out validation set; real sorting was 92.5%; the 9 misses were
   vision under lighting.
 - **How do you detect a stall?** We don't sense current — we cap travel and size the grip so it
   can't jam.
