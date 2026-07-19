@@ -39,25 +39,25 @@ export function initRunPanel() {
         // Preconditions checked here so we can give a specific, actionable message
         // rather than a generic failure.
         if (!isConnected()) {
-            appendLog('❌ Robot not connected. Go to Teach Poses → Connect to Robot first.', true);
+            appendLog('Robot not connected. Go to Teach Poses → Connect to Robot first.', true);
             return;
         }
         if (!isCameraRunning()) {
-            appendLog('❌ Camera is off. Go to the Vision tab → Start Camera so the program can see.', true);
+            appendLog('Camera is off. Go to the Vision tab → Start Camera so the program can see.', true);
             return;
         }
         if (!window.blocklyWorkspace) {
-            appendLog('❌ No program workspace found.', true);
+            appendLog('No program workspace found.', true);
             return;
         }
         if (!window.blocklyWorkspace.getTopBlocks(true).length) {
-            appendLog('❌ No blocks to run. Add some blocks first.', true);
+            appendLog('No blocks to run. Add some blocks first.', true);
             return;
         }
         try {
             await runProgram(window.blocklyWorkspace);
         } catch (e) {
-            appendLog(`❌ ${e.message}`, true);
+            appendLog(`${e.message}`, true);
         }
     });
 

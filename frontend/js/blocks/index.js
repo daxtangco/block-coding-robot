@@ -10,7 +10,7 @@ export async function initBlockly() {
 
     // Skip if blocklyDiv doesn't exist (not on program workspace)
     if (!blocklyDiv) {
-        console.log('⚠️ Blockly div not found, skipping initialization');
+        console.log('Blockly div not found, skipping initialization');
         return;
     }
 
@@ -106,7 +106,7 @@ export async function initBlockly() {
         return Blockly.Arduino.workspaceToCode(workspace);
     };
 
-    console.log('✅ Blockly initialized');
+    console.log('Blockly initialized');
 }
 
 function updateCodePreview() {

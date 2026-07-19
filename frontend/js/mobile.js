@@ -146,7 +146,7 @@ async function onAuto() {
     try {
         await runProgram(window.blocklyWorkspace);
     } catch (e) {
-        log(`❌ ${e.message}`, true);
+        log(`${e.message}`, true);
     }
 }
 

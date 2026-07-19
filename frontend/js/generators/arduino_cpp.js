@@ -215,4 +215,4 @@ Blockly.Arduino['variables_set'] = function(block) {
     return `int ${varName} = ${value};\n`;
 };
 
-console.log('✅ Arduino code generator loaded');
+console.log('Arduino code generator loaded');

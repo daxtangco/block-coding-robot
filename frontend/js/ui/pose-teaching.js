@@ -52,7 +52,7 @@ function setConnStatus(text, state) {
 function handleConn(msg) {
     if (msg.type !== '__conn') return;
     if (msg.connected) {
-        setConnStatus('🟢 Connected — sliders now move the real arm', 'connected');
+        setConnStatus('Connected — sliders now move the real arm', 'connected');
     } else if (msg.reason === 'connecting') {
         setConnStatus('Connecting to robot…', 'connecting');
     } else if (msg.reason === 'unreachable' || msg.reason === 'error') {
@@ -270,9 +270,9 @@ export async function initPoseTeaching() {
             await renderPosesList();
             updatePoseCount();
             syncPoseGlobals();
-            alert(`✅ Pose "${name}" saved successfully!`);
+            alert(`Pose "${name}" saved successfully!`);
         } catch (error) {
-            alert('❌ Error saving pose: ' + error.message);
+            alert('Error saving pose: ' + error.message);
         }
     });
 
@@ -379,7 +379,7 @@ async function renderPosesList() {
                     updatePoseCount();
                     syncPoseGlobals();
                 } catch (error) {
-                    alert('❌ Error deleting pose: ' + error.message);
+                    alert('Error deleting pose: ' + error.message);
                 }
             });
         }

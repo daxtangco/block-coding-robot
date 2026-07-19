@@ -102,9 +102,9 @@ export async function runProgram(workspace) {
             await execSequence(block);
             if (!running) break;
         }
-        if (running) onLog('✅ Program finished.', false);
+        if (running) onLog('Program finished.', false);
     } catch (e) {
-        onLog(`❌ ${e.message}`, true);
+        onLog(`${e.message}`, true);
     } finally {
         running = false;
         pendingDone = null;

@@ -125,7 +125,7 @@ function showBuildSuccess(result) {
 
         buildResult.innerHTML = `
             <div class="result-success">
-                <h3>✅ Build Successful!</h3>
+                <h3>Build Successful!</h3>
                 <p><strong>Firmware size:</strong> ${sizeKB} KB</p>
                 <p><strong>Target:</strong> ESP32 Arm Controller (PCA9685)</p>
 
@@ -217,9 +217,9 @@ function attachFlashHandlers(firmwareUrl) {
                     generatedCode: lastBuild.generatedCode,
                     useApMode: true,
                 });
-                setUploadLog(`✅ Flashed to ${port}. The board is rebooting — reconnect your phone to RobotArm-XXXX.`, false);
+                setUploadLog(`Flashed to ${port}. The board is rebooting — reconnect your phone to RobotArm-XXXX.`, false);
             } catch (e) {
-                setUploadLog(`❌ Flash failed: ${e.message}`, true);
+                setUploadLog(`Flash failed: ${e.message}`, true);
             } finally {
                 flashUsbBtn.disabled = false;
             }
@@ -245,7 +245,7 @@ function showBuildError(errorMessage) {
         buildResult.style.display = 'block';
         buildResult.innerHTML = `
             <div style="padding: 1rem; background: #fee2e2; border-radius: 0.5rem; border: 1px solid #fca5a5;">
-                <h3 style="color: var(--danger-color); margin-bottom: 0.5rem;">❌ Build Failed</h3>
+                <h3 style="color: var(--danger-color); margin-bottom: 0.5rem;">Build Failed</h3>
                 <pre style="color: #991b1b; font-size: 0.85rem; white-space: pre-wrap; max-height: 300px; overflow: auto;">${errorMessage}</pre>
                 <p style="margin-top: 1rem; color: var(--text-secondary); font-size: 0.9rem;">
                     Common issues:
