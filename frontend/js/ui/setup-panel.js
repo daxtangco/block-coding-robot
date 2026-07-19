@@ -20,9 +20,9 @@ export async function initSetupPanel() {
 
         try {
             await saveSettings(settings);
-            showStatus('✅ Settings saved successfully!', 'success');
+            showStatus('Settings saved successfully!', 'success');
         } catch (error) {
-            showStatus('❌ Error: ' + error.message, 'error');
+            showStatus('Error: ' + error.message, 'error');
         }
     });
 

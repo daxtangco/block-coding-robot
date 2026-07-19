@@ -42,7 +42,7 @@ function initWorkspaces() {
 
 // Initialize all components when DOM is ready
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log('🤖 Block Robot IDE initializing...');
+    console.log('Block Robot IDE initializing...');
 
     try {
         initWorkspaces();
@@ -55,9 +55,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         await initTeachPanel();
         initRunPanel();
 
-        console.log('✅ IDE ready!');
+        console.log('IDE ready');
     } catch (error) {
-        console.error('❌ Initialization error:', error);
+        console.error('Initialization error:', error);
         alert('Failed to initialize IDE: ' + error.message);
     }
 });

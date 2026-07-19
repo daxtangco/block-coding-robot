@@ -64,9 +64,9 @@ async function onSave() {
         currentPrograms = await saveProgram(name, serialized);
         renderProgramSelect();
         document.getElementById('program-select').value = name;
-        alert(`✅ Program "${name}" saved.`);
+        alert(`Program "${name}" saved.`);
     } catch (e) {
-        alert('❌ Error saving program: ' + e.message);
+        alert('Error saving program: ' + e.message);
     }
 }
 
@@ -91,7 +91,7 @@ function onLoad() {
         Blockly.serialization.workspaces.load(currentPrograms[name], workspace);
     } catch (e) {
         console.error('Failed to load program:', e);
-        alert('❌ Could not load program "' + name + '". It may be corrupt.');
+        alert('Could not load program "' + name + '". It may be corrupt.');
     }
 }
 
@@ -107,6 +107,6 @@ async function onDelete() {
         currentPrograms = await deleteProgram(name);
         renderProgramSelect();
     } catch (e) {
-        alert('❌ Error deleting program: ' + e.message);
+        alert('Error deleting program: ' + e.message);
     }
 }

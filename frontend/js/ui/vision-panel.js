@@ -208,10 +208,10 @@ export async function initVisionPanel() {
         result.textContent = 'Testing...';
         try {
             const ping = await pingCamera(url);
-            result.textContent = ping.reachable ? '✅ Reachable!' : '❌ Not reachable — check IP and WiFi';
+            result.textContent = ping.reachable ? 'Reachable!' : 'Not reachable — check IP and WiFi';
             result.style.color = ping.reachable ? '#0a0' : '#c00';
         } catch {
-            result.textContent = '❌ Request failed';
+            result.textContent = 'Request failed';
             result.style.color = '#c00';
         }
     });
