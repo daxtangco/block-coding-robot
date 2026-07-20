@@ -348,6 +348,28 @@ body {
     flex-direction: column;
 }
 
+.feed-panel {
+    width: 400px;
+    background: var(--panel-bg);
+    border-left: 2px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+}
+
+.feed-panel .feed-body {
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+#program-feed-canvas {
+    width: 100%;
+    background: #0f172a;
+    border: 1px solid var(--border-color);
+    border-radius: 0.4rem;
+}
+
 .panel-header {
     padding: 1rem;
     border-bottom: 1px solid var(--border-color);

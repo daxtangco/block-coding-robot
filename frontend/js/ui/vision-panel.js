@@ -51,6 +51,22 @@ function drawDetections(imgEl, canvas, detections) {
     }
 }
 
+// ── mirror the annotated feed into the Program tab's inline panel ────────────
+// The Program tab shows a live copy of the same annotated canvas while a program
+// runs, so you can watch detections without switching tabs. No-op if that panel
+// isn't on screen (canvas hidden), so it costs nothing when unused.
+function mirrorToProgramFeed(sourceCanvas) {
+    const dest = document.getElementById('program-feed-canvas');
+    if (!dest || dest.offsetParent === null) return;   // panel not visible
+    if (dest.width !== sourceCanvas.width || dest.height !== sourceCanvas.height) {
+        dest.width  = sourceCanvas.width;
+        dest.height = sourceCanvas.height;
+    }
+    dest.getContext('2d').drawImage(sourceCanvas, 0, 0);
+    const status = document.getElementById('program-feed-status');
+    if (status) status.style.display = 'none';
+}
+
 // ── render text results list ──────────────────────────────────────────────────
 function renderResults(result) {
     const el = document.getElementById('vision-detections');
@@ -120,6 +136,7 @@ async function detectLoop(video, canvas) {
 
         setLatestDetection(result);
         renderResults(result);
+        mirrorToProgramFeed(canvas);
     } catch (e) {
         setStatus(`Detection error: ${e.message}`, false);
     } finally {
