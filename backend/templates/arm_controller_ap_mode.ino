@@ -129,7 +129,7 @@ const char EMBEDDED_HTML[] PROGMEM = R"rawliteral(
         // GRIPPER_* constants below. Narrow grips thin 1-stud pieces firmly;
         // wide stops short so the servo doesn't stall on a thick 2-stud piece.
         const GRIPPER_OPEN = 30;
-        const GRIPPER_CLOSE_NARROW = 10;
+        const GRIPPER_CLOSE_NARROW = 8;
         const GRIPPER_CLOSE_WIDE = 13;
 
         function setEnabled(on) {
@@ -297,11 +297,11 @@ const bool SERVO_INVERTED[5] = {false, true, false, true, false};
 // grip per piece. It's set to the WIDE-safe angle so it never stalls on a
 // 2-stud brick (thinner pieces just grip a little looser here). The live block
 // runner in the browser DOES size the close angle per detected class — see
-// gripperCloseForClass() in frontend/js/ui/robot-link.js (narrow=10, wide=15).
+// gripperCloseForClass() in frontend/js/ui/robot-link.js (narrow=8, wide=13).
 // closeClaw() uses the single wide-safe GRIPPER_CLOSE. GRIPPER_CLOSE_NARROW is
 // documented here for parity with the remote page's three grip presets (the
 // manual buttons send raw angles, so behavior doesn't depend on this constant).
-const int GRIPPER_CLOSE_NARROW = 10;
+const int GRIPPER_CLOSE_NARROW = 8;
 const int GRIPPER_CLOSE = 13;   // = wide, used by closeClaw()
 const int GRIPPER_OPEN  = 30;
 

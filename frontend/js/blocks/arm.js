@@ -44,7 +44,7 @@ Blockly.Blocks['close_claw'] = {
         this.setNextStatement(true, null);
         this.setColour('#5C81A6');
         this.setTooltip("Close the gripper. (auto) picks narrow/wide from the piece " +
-            "the camera sees; narrow (10°) grips thin 1-stud pieces, wide (15°) " +
+            "the camera sees; narrow (8°) grips thin 1-stud pieces, wide (13°) " +
             "stops short so a thick 2-stud piece doesn't stall the servo.");
     }
 };
