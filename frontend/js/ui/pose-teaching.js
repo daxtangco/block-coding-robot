@@ -170,7 +170,7 @@ function setControlsEnabled(on) {
 
 // Toggle the three gripper buttons' active state to match an angle, WITHOUT
 // sending. The reported angle may be mid-slew, so snap to the nearest of the
-// three presets (open 30 / narrow 10 / wide 15) rather than exact-matching.
+// three presets (open 30 / narrow 8 / wide 13) rather than exact-matching.
 function reflectGripper(angle) {
     const presets = [GRIPPER_OPEN, GRIPPER_CLOSE_NARROW, GRIPPER_CLOSE_WIDE];
     let nearest = presets[0];

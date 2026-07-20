@@ -25,7 +25,7 @@ export const GRIPPER_OPEN = 30;
 //   - wide  (2-stud):  jaws contact sooner, so a larger angle = the servo still
 //                      reaches its target and never stalls.
 // Tune these two on the real arm; they're the only gripper numbers to touch.
-export const GRIPPER_CLOSE_NARROW = 10;
+export const GRIPPER_CLOSE_NARROW = 8;
 export const GRIPPER_CLOSE_WIDE = 13;
 // Default close (manual Teach Poses button, when no piece is known): use the
 // wider angle so a manual close can never stall on whatever is in the jaws.
