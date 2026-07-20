@@ -1,7 +1,7 @@
 """Custom-dataset training service.
 
 Lets a teacher upload a YOLOv8-format dataset (a .zip exported from Roboflow,
-Kaggle, Google Open Images, etc.), train a YOLOv8n detector on it in a
+Kaggle, Google Open Images, etc.), train a YOLOv8s detector on it in a
 background thread, and have the resulting model become the live detector used
 by the Vision tab and the `camera sees` block.
 
@@ -187,7 +187,7 @@ def _train_worker(project_name: str, epochs: int, imgsz: int):
             _state.update(state="training", epoch=0, total_epochs=epochs,
                           message=f"Training on {device}...", classes=classes)
 
-        model = YOLO("yolov8n.pt")  # start from pretrained COCO weights
+        model = YOLO("yolov8s.pt")  # start from pretrained COCO weights (small: more accurate than n, still real-time)
 
         def _on_epoch_end(trainer):
             with _lock:
