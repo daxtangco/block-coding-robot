@@ -121,8 +121,8 @@ LABEL_MAPPING = {
 # ============================================================================
 
 # Starting model (from PRD)
-PRETRAINED_MODEL = "yolov8n.pt"  # Lightweight, fast, suitable for education
-ALTERNATIVE_MODELS = ["yolov8s.pt", "yolov8m.pt"]  # Optional upgrades
+PRETRAINED_MODEL = "yolov8s.pt"  # Small: more accurate than n, still real-time on a laptop
+ALTERNATIVE_MODELS = ["yolov8n.pt", "yolov8m.pt"]  # n = lighter/faster, m = heavier/slower
 
 # ============================================================================
 # TRAINING PARAMETERS (from PRD)
@@ -164,19 +164,26 @@ TRAIN_CONFIG = {
     "dfl": 1.5,
 
     # Data augmentation
+    # Bricks/plates are viewed top-down and land at ANY orientation on the table,
+    # so the model must be rotation-invariant. Full 360deg rotation + vertical
+    # flip teach that (a top-down piece has no "up"). Without these the model only
+    # learns the handful of angles present in the dataset and misses/mislabels
+    # rotated pieces live — the main cause of inconsistent real-world detection.
     "mosaic": 1.0,
-    "mixup": 0.0,
+    "mixup": 0.1,          # light mixup improves robustness to clutter/occlusion
     "cutmix": 0.0,
     "fliplr": 0.5,
-    "flipud": 0.0,
-    "degrees": 0.0,
+    "flipud": 0.5,         # was 0.0 — valid for a top-down camera
+    "degrees": 180.0,      # was 0.0 — full-rotation invariance for table pieces
     "translate": 0.1,
     "scale": 0.5,
     "shear": 0.0,
     "perspective": 0.0,
+    # Wider photometric jitter so classroom lighting (warmer/dimmer than the
+    # clean validation set) doesn't tank detection.
     "hsv_h": 0.015,
     "hsv_s": 0.7,
-    "hsv_v": 0.4,
+    "hsv_v": 0.5,          # was 0.4 — a bit more brightness variation
     "close_mosaic": 10,
 }
 
