@@ -170,6 +170,12 @@ async function startEspcam(canvas) {
 
 // ── public start / stop ───────────────────────────────────────────────────────
 export async function startCamera() {
+    // Guard against stacking loops: startCamera() can be triggered from the Vision
+    // Start button, the Program tab's Run (auto-start), and mobile. Without this,
+    // each call spawns ANOTHER detectLoop while the old one keeps running, so the
+    // browser runs several detect loops at once and the feed slows progressively.
+    if (running) return;
+
     const video  = document.getElementById('vision-video');
     const canvas = document.getElementById('vision-canvas');
     source = document.querySelector('input[name="vision-source"]:checked').value;
