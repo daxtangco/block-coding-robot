@@ -12,7 +12,7 @@
 import { sendServo, isConnected, onRobotMessage,
          GRIPPER_CH, GRIPPER_OPEN, gripperCloseForClass,
          GRIPPER_CLOSE_NARROW, GRIPPER_CLOSE_WIDE } from './robot-link.js';
-import { getLatestDetection, getStableClass } from './vision-state.js';
+import { getLatestDetection } from './vision-state.js';
 import { getPoses } from './pose-teaching.js';
 
 // Gripper angles come from robot-link.js. close_claw picks its angle from the
@@ -71,11 +71,9 @@ function awaitMove(sendFn) {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Class name of the piece under the camera, voted over recent frames so a single
-// flickery frame can't mis-size the grip or (via current_detection) mis-route the
-// drop. Falls back to the raw top detection if no stable winner yet.
+// Class name of the highest-priority current detection, or null if none. Used
+// to size the gripper close angle to the piece being picked up.
 function topDetectionClass() {
-    const stable = getStableClass();
-    if (stable) return stable;
     const result = getLatestDetection();
     const top = result && result.detections && result.detections[0];
     return top ? top.class_name : null;
@@ -223,19 +221,11 @@ function evalValue(block) {
             const minConf = parseFloat(block.getFieldValue('CONFIDENCE'));  // percent
             const result = getLatestDetection();
             if (!result || !result.detections) return false;
-            // Must be BOTH the voted-stable class AND meet the confidence gate this
-            // frame — so a one-frame flicker to `className` can't trigger a branch.
-            const stable = getStableClass();
-            if (stable !== className) return false;
             return result.detections.some(
                 (d) => d.class_name === className && d.confidence * 100 >= minConf,
             );
         }
         case 'current_detection': {
-            // Voted over recent frames so the drop routes on the agreed class, not
-            // a single flickery frame. Falls back to the raw top frame if unsettled.
-            const stable = getStableClass();
-            if (stable) return stable;
             const result = getLatestDetection();
             const top = result && result.detections && result.detections[0];
             return top ? top.class_name : 'none';
