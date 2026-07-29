@@ -6,10 +6,13 @@ from backend.services.storage import load_poses, save_poses
 
 router = APIRouter()
 
-# Per-channel travel limits, matching the firmware's SERVO_MAX_ANGLE
-# (base, shoulder, elbow, wrist, gripper). Base is a 360° servo; wrist is
-# mechanically limited to 90°.
-SERVO_MAX_ANGLE = [180, 180, 180, 90, 180]
+# Per-channel travel limits, matching the firmware's SERVO_MIN_ANGLE /
+# SERVO_MAX_ANGLE (base, shoulder, elbow, wrist, gripper). Keep these in sync with
+# arm_controller_ap_mode.ino: wrist extends to 180° for the top-down scan pose;
+# the gripper is capped at 90° (geared jaw hard-stop); the shoulder is floored at
+# 90° so a pose can't lean the arm backward past vertical (tip-over risk).
+SERVO_MIN_ANGLE = [0, 90, 0, 0, 0]
+SERVO_MAX_ANGLE = [180, 180, 180, 180, 90]
 
 
 def _validate_angles(angles, pose_name=""):
@@ -17,8 +20,8 @@ def _validate_angles(angles, pose_name=""):
     if len(angles) != 5:
         raise HTTPException(400, f"Pose{where} must have exactly 5 angles (base, shoulder, elbow, wrist, gripper)")
     for i, angle in enumerate(angles):
-        if not (0 <= angle <= SERVO_MAX_ANGLE[i]):
-            raise HTTPException(400, f"Invalid angle{where}: {angle}. Channel {i} must be between 0 and {SERVO_MAX_ANGLE[i]}")
+        if not (SERVO_MIN_ANGLE[i] <= angle <= SERVO_MAX_ANGLE[i]):
+            raise HTTPException(400, f"Invalid angle{where}: {angle}. Channel {i} must be between {SERVO_MIN_ANGLE[i]} and {SERVO_MAX_ANGLE[i]}")
 
 class PoseModel(BaseModel):
     name: str
