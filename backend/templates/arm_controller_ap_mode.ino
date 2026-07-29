@@ -76,7 +76,7 @@ const char EMBEDDED_HTML[] PROGMEM = R"rawliteral(
             <label>Shoulder</label>
             <div class="slider-row">
                 <span>0°</span>
-                <input type="range" id="s1" min="0" max="180" value="90" disabled>
+                <input type="range" id="s1" min="90" max="180" value="90" disabled>
                 <span id="v1">90°</span>
             </div>
         </div>
@@ -94,7 +94,7 @@ const char EMBEDDED_HTML[] PROGMEM = R"rawliteral(
             <label>Wrist</label>
             <div class="slider-row">
                 <span>0°</span>
-                <input type="range" id="s3" min="0" max="90" value="60" disabled>
+                <input type="range" id="s3" min="0" max="180" value="60" disabled>
                 <span id="v3">60°</span>
             </div>
         </div>
@@ -269,12 +269,23 @@ const int SERVO_PULSE_MIN[5] = {150, 150, 150, 150, 150};
 const int SERVO_PULSE_MAX[5] = {450, 450, 450, 450, 450};
 
 // Per-channel travel range. Base is capped at 180° (the rear 180° points away
-// from the workspace and isn't needed); wrist is limited to 0-90°; the gripper
-// is capped at 90° — its geared parallel-jaw linkage hits a hard mechanical stop
-// past that, and driving into the stop stalls the servo at locked-rotor current,
-// which sags the shared rail and browns out the other servos (notably the
-// shoulder). Capping here means no pose or slider can ever command the jam.
-const int SERVO_MAX_ANGLE[5] = {180, 180, 180, 90, 90};
+// from the workspace and isn't needed); wrist is 0-180° (extended from 90° so it
+// can tilt the gripper-mounted camera to a top-down scan pose — TEST INCREMENTALLY:
+// if the wrist buzzes/strains or the board resets near the top, it hit a hard-stop
+// and this cap must be lowered); the gripper is capped at 90° — its geared
+// parallel-jaw linkage hits a hard mechanical stop past that, and driving into the
+// stop stalls the servo at locked-rotor current, which sags the shared rail and
+// browns out the other servos (notably the shoulder). Capping here means no pose
+// or slider can ever command the jam.
+const int SERVO_MAX_ANGLE[5] = {180, 180, 180, 180, 90};
+
+// Per-channel MINIMUM travel (floor). Most joints start at 0, but the SHOULDER is
+// floored at 90°: on this build, logical 0 leans the arm BACKWARD (tip-over risk)
+// and only 90–180 is the safe forward working range. Flooring at 90 means no pose
+// or slider can ever command the shoulder past vertical into the backward half.
+// (The floor is on the logical angle, applied before the inversion below, so it
+// restricts the backward direction regardless of the servo's mounting.)
+const int SERVO_MIN_ANGLE[5] = {0, 90, 0, 0, 0};
 
 // Channels whose direction is physically reversed (shoulder and wrist are
 // mounted so they travel opposite the commanded angle).
@@ -356,11 +367,15 @@ int jointOrder[5] = {3, 2, 1, 0, 4};
 // Each servo has its own travel range (SERVO_MAX_ANGLE) and may be inverted.
 int angleToPulse(uint8_t servo, int angle) {
   if (servo >= 5) return map(constrain(angle, 0, 180), 0, 180, 100, 500);
+  int minAngle = SERVO_MIN_ANGLE[servo];
   int maxAngle = SERVO_MAX_ANGLE[servo];
-  angle = constrain(angle, 0, maxAngle);
+  angle = constrain(angle, minAngle, maxAngle);
   if (SERVO_INVERTED[servo]) {
     angle = maxAngle - angle;  // flip direction within this servo's range
   }
+  // Pulse still maps across the servo's full 0..maxAngle mechanical range so the
+  // physical angle-to-pulse relationship is unchanged; only the reachable band is
+  // limited by the constrain above.
   return map(angle, 0, maxAngle, SERVO_PULSE_MIN[servo], SERVO_PULSE_MAX[servo]);
 }
 
@@ -378,7 +393,7 @@ void writeServo(uint8_t servo, int angle) {
 // slewer eases the servo there gradually so motion stays smooth.
 void setServoAngle(uint8_t servo, int angle) {
   if (servo < 5) {
-    targetPos[servo] = constrain(angle, 0, SERVO_MAX_ANGLE[servo]);
+    targetPos[servo] = constrain(angle, SERVO_MIN_ANGLE[servo], SERVO_MAX_ANGLE[servo]);
   }
 }
 
