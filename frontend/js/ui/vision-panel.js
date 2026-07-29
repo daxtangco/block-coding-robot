@@ -28,11 +28,31 @@ function setStatus(msg, ok) {
 }
 
 // ── draw bounding boxes on canvas ─────────────────────────────────────────────
-function drawDetections(imgEl, canvas, detections) {
+function drawDetections(imgEl, canvas, detections, pickupZone) {
     const ctx = canvas.getContext('2d');
     canvas.width  = imgEl.videoWidth  || imgEl.naturalWidth  || 640;
     canvas.height = imgEl.videoHeight || imgEl.naturalHeight || 480;
     ctx.drawImage(imgEl, 0, 0, canvas.width, canvas.height);
+
+    // Draw the pickup zone (region of interest). Only pieces inside it are
+    // detected; anything outside — e.g. already-sorted bricks — is ignored.
+    // Shown so you can calibrate PICKUP_ZONE in detection.py to hug your pickup area.
+    if (pickupZone && pickupZone.enabled) {
+        const zx = pickupZone.left   * canvas.width;
+        const zy = pickupZone.top    * canvas.height;
+        const zw = (pickupZone.right - pickupZone.left) * canvas.width;
+        const zh = (pickupZone.bottom - pickupZone.top) * canvas.height;
+        ctx.save();
+        ctx.strokeStyle = '#facc15';   // amber
+        ctx.lineWidth = 2;
+        ctx.setLineDash([8, 5]);
+        ctx.strokeRect(zx, zy, zw, zh);
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#facc15';
+        ctx.font = '13px sans-serif';
+        ctx.fillText('pickup zone', zx + 4, zy + 16);
+        ctx.restore();
+    }
 
     ctx.lineWidth = 2;
     ctx.font = '16px sans-serif';
@@ -129,9 +149,9 @@ async function detectLoop(video, canvas) {
         // For ESP32-CAM, decode the blob to draw it on the canvas first.
         if (source === 'espcam') {
             const img = await blobToImage(blob);
-            drawDetections(img, canvas, result.detections);
+            drawDetections(img, canvas, result.detections, result.pickup_zone);
         } else {
-            drawDetections(video, canvas, result.detections);
+            drawDetections(video, canvas, result.detections, result.pickup_zone);
         }
 
         setLatestDetection(result);
@@ -178,7 +198,11 @@ export async function startCamera() {
 
     const video  = document.getElementById('vision-video');
     const canvas = document.getElementById('vision-canvas');
-    source = document.querySelector('input[name="vision-source"]:checked').value;
+    // Camera source: USB/PC webcam only. (ESP32-CAM support kept in the code path
+    // below for reference, but the UI no longer offers it — a wired USB webcam has
+    // better optics/focus/low-light, which detection depends on.)
+    const srcRadio = document.querySelector('input[name="vision-source"]:checked');
+    source = srcRadio ? srcRadio.value : 'webcam';
 
     setStatus('Connecting...', true);
     try {
@@ -215,16 +239,18 @@ export async function initVisionPanel() {
     const startBtn = document.getElementById('vision-start-btn');
     if (!startBtn) return;
 
-    // Source radio toggle — show/hide IP input row
+    // ESP32-CAM source selector + ping button are optional — the UI now ships
+    // webcam-only, so guard these so init doesn't crash when they're absent.
     document.querySelectorAll('input[name="vision-source"]').forEach(radio => {
         radio.addEventListener('change', () => {
             const selected = document.querySelector('input[name="vision-source"]:checked').value;
-            document.getElementById('espcam-url-row').style.display = selected === 'espcam' ? '' : 'none';
+            const row = document.getElementById('espcam-url-row');
+            if (row) row.style.display = selected === 'espcam' ? '' : 'none';
         });
     });
 
-    // Ping / test button
-    document.getElementById('espcam-ping-btn').addEventListener('click', async () => {
+    const pingBtn = document.getElementById('espcam-ping-btn');
+    if (pingBtn) pingBtn.addEventListener('click', async () => {
         const url    = document.getElementById('espcam-url').value.trim();
         const result = document.getElementById('espcam-ping-result');
         if (!url) { result.textContent = 'Enter an IP first.'; return; }
