@@ -1,4 +1,6 @@
 import asyncio
+import shutil
+import sys
 import uuid
 import subprocess
 from pathlib import Path
@@ -7,6 +9,26 @@ from concurrent.futures import ThreadPoolExecutor
 
 BUILDS_DIR = Path("builds")
 BUILDS_DIR.mkdir(exist_ok=True)
+
+
+def _arduino_cli() -> str:
+    """Resolve the arduino-cli executable.
+
+    The launcher installs a private copy into <project_root>/tools/ (NOT on the
+    system PATH), so calling the bare name "arduino-cli" fails on machines where
+    it isn't also globally installed (WinError 2 / "not found"). Resolve the same
+    way the launcher's doctor does: a system copy on PATH wins, else our private
+    tools/ copy. Falls back to the bare name so the "not found" error still reads
+    sensibly if neither exists.
+    """
+    on_path = shutil.which("arduino-cli")
+    if on_path:
+        return on_path
+    exe = "arduino-cli.exe" if sys.platform == "win32" else "arduino-cli"
+    local = Path.cwd() / "tools" / exe   # matches launcher doctor.arduino_cli_local
+    if local.exists():
+        return str(local)
+    return "arduino-cli"
 
 def get_template_path(use_pca9685: bool = True, use_ap_mode: bool = False) -> Path:
     """Get the appropriate firmware template path."""
@@ -51,7 +73,7 @@ def list_serial_ports() -> list:
     """
     try:
         result = subprocess.run(
-            ["arduino-cli", "board", "list", "--format", "json"],
+            [_arduino_cli(), "board", "list", "--format", "json"],
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
             text=True, timeout=30,
         )
@@ -96,7 +118,7 @@ async def compile_and_upload(
     (sketch_dir / "sketch.ino").write_text(sketch_content)
 
     cmd = [
-        "arduino-cli", "compile", "--upload",
+        _arduino_cli(), "compile", "--upload",
         "--fqbn", board_fqbn,
         "--port", port,
         str(sketch_dir),
@@ -132,7 +154,7 @@ async def compile_arduino(sketch_content: str, board_fqbn: str = "esp32:esp32:es
 
     # Compile command
     cmd = [
-        "arduino-cli", "compile",
+        _arduino_cli(), "compile",
         "--fqbn", board_fqbn,
         "--output-dir", str(build_dir),
         str(sketch_dir)
