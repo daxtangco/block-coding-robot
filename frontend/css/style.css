@@ -1255,6 +1255,29 @@ input:checked + .slider:before {
     gap: 0.5rem;
     color: var(--text-primary);
 }
+.vision-dropzone-bar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin: 0.25rem 0 0.75rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--bg-secondary, #f1f5f9);
+    border-radius: 8px;
+}
+.vision-dropzone-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--text-primary);
+    cursor: pointer;
+    user-select: none;
+}
+.vision-dropzone-bar .btn-primary,
+.vision-dropzone-bar .btn-secondary {
+    padding: 0.3rem 0.7rem;
+    font-size: 0.85rem;
+}
 .vision-stage {
     width: 100%;
     max-width: 640px;

@@ -6,7 +6,8 @@
 // The detection loop is identical for both: grab a JPEG blob, POST to /api/detect,
 // draw boxes. Switching source just changes how the blob is obtained.
 
-import { fetchDetectStatus, detectImage, pingCamera, fetchCameraFrame } from '../api.js';
+import { fetchDetectStatus, detectImage, pingCamera, fetchCameraFrame,
+         fetchDropZones, saveDropZones } from '../api.js';
 import { setLatestDetection, clearLatestDetection } from './vision-state.js';
 
 const DETECT_GAP_MS = 60;   // ms between detections (self-scheduling loop)
@@ -17,7 +18,18 @@ let firstFrame = true;
 let source    = 'webcam';   // 'webcam' | 'espcam'
 let espcamUrl = '';
 
+// ── Drop-zone editor state ──────────────────────────────────────────────────
+// dropZones is the single source of truth for the masks; zones are in FRACTIONS
+// of the frame (0..1) so they're resolution-independent. editMode toggles the
+// interactive editor (draw/move/resize/delete on the canvas).
+let dropZones = { enabled: true, zones: [] };
+let editMode  = false;
+let dzDirty   = false;      // unsaved changes
+let drag      = null;       // active gesture: {type, index, handle, startX, startY, orig}
+const HANDLE_PX = 10;       // corner-resize hit radius (screen px)
+
 export function isCameraRunning() { return running; }
+export function isDropZoneEditing() { return editMode; }
 
 // ── status helper ─────────────────────────────────────────────────────────────
 function setStatus(msg, ok) {
@@ -28,29 +40,50 @@ function setStatus(msg, ok) {
 }
 
 // ── draw bounding boxes on canvas ─────────────────────────────────────────────
-function drawDetections(imgEl, canvas, detections, pickupZone) {
+function drawDetections(imgEl, canvas, detections) {
     const ctx = canvas.getContext('2d');
     canvas.width  = imgEl.videoWidth  || imgEl.naturalWidth  || 640;
     canvas.height = imgEl.videoHeight || imgEl.naturalHeight || 480;
     ctx.drawImage(imgEl, 0, 0, canvas.width, canvas.height);
 
-    // Draw the pickup zone (region of interest). Only pieces inside it are
-    // detected; anything outside — e.g. already-sorted bricks — is ignored.
-    // Shown so you can calibrate PICKUP_ZONE in detection.py to hug your pickup area.
-    if (pickupZone && pickupZone.enabled) {
-        const zx = pickupZone.left   * canvas.width;
-        const zy = pickupZone.top    * canvas.height;
-        const zw = (pickupZone.right - pickupZone.left) * canvas.width;
-        const zh = (pickupZone.bottom - pickupZone.top) * canvas.height;
+    // Draw the drop-zone masks (exclusion ROI). The whole frame is valid pickup
+    // space EXCEPT these zones — pieces whose center lands inside one (e.g. bricks
+    // already dropped into a bin) are ignored. Uses the module-level dropZones so
+    // the interactive editor's live edits are reflected immediately. When masks
+    // are toggled off they're still drawn (faded) while editing, so you can see
+    // what you're placing.
+    const showZones = dropZones && (dropZones.enabled || editMode);
+    if (showZones) {
         ctx.save();
-        ctx.strokeStyle = '#facc15';   // amber
-        ctx.lineWidth = 2;
-        ctx.setLineDash([8, 5]);
-        ctx.strokeRect(zx, zy, zw, zh);
-        ctx.setLineDash([]);
-        ctx.fillStyle = '#facc15';
-        ctx.font = '13px sans-serif';
-        ctx.fillText('pickup zone', zx + 4, zy + 16);
+        const active = dropZones.enabled;
+        (dropZones.zones || []).forEach((z, i) => {
+            const zx = z.left * canvas.width;
+            const zy = z.top  * canvas.height;
+            const zw = (z.right - z.left) * canvas.width;
+            const zh = (z.bottom - z.top) * canvas.height;
+            ctx.fillStyle = active ? 'rgba(239, 68, 68, 0.18)' : 'rgba(148, 163, 184, 0.15)';
+            ctx.fillRect(zx, zy, zw, zh);
+            ctx.strokeStyle = active ? '#ef4444' : '#94a3b8';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([8, 5]);
+            ctx.strokeRect(zx, zy, zw, zh);
+            ctx.setLineDash([]);
+            ctx.fillStyle = active ? '#ef4444' : '#94a3b8';
+            ctx.font = '13px sans-serif';
+            ctx.fillText(active ? 'drop zone (ignored)' : 'drop zone (off)', zx + 4, zy + 16);
+
+            // Editor affordances: corner resize handles + a delete hint.
+            if (editMode) {
+                ctx.fillStyle = '#ffffff';
+                ctx.strokeStyle = active ? '#ef4444' : '#64748b';
+                for (const [hx, hy] of [[zx, zy], [zx + zw, zy], [zx, zy + zh], [zx + zw, zy + zh]]) {
+                    ctx.beginPath();
+                    ctx.rect(hx - HANDLE_PX / 2, hy - HANDLE_PX / 2, HANDLE_PX, HANDLE_PX);
+                    ctx.fill();
+                    ctx.stroke();
+                }
+            }
+        });
         ctx.restore();
     }
 
@@ -146,12 +179,17 @@ async function detectLoop(video, canvas) {
 
         if (firstFrame) { firstFrame = false; setStatus('Camera running — detecting...', true); }
 
+        // Sync server-side masks into the module state EXCEPT while editing or when
+        // there are unsaved edits — otherwise the loop would overwrite the user's
+        // in-progress drag every frame.
+        if (!editMode && !dzDirty && result.drop_zones) dropZones = result.drop_zones;
+
         // For ESP32-CAM, decode the blob to draw it on the canvas first.
         if (source === 'espcam') {
             const img = await blobToImage(blob);
-            drawDetections(img, canvas, result.detections, result.pickup_zone);
+            drawDetections(img, canvas, result.detections);
         } else {
-            drawDetections(video, canvas, result.detections, result.pickup_zone);
+            drawDetections(video, canvas, result.detections);
         }
 
         setLatestDetection(result);
@@ -234,6 +272,166 @@ export function stopCamera() {
     setStatus('Camera stopped.', true);
 }
 
+// ── drop-zone editor ──────────────────────────────────────────────────────────
+// All geometry is kept in FRACTIONS (0..1). Pointer events arrive in canvas
+// pixels, so we convert against the canvas's intrinsic size (which tracks the
+// video resolution), then clamp back to 0..1. This keeps zones correct no matter
+// the display size or camera resolution.
+function canvasFrac(canvas, evt) {
+    const rect = canvas.getBoundingClientRect();
+    const x = (evt.clientX - rect.left) / rect.width;
+    const y = (evt.clientY - rect.top)  / rect.height;
+    return { fx: Math.max(0, Math.min(1, x)), fy: Math.max(0, Math.min(1, y)) };
+}
+
+// Which zone/handle (if any) is under the pointer. Returns {index, handle} where
+// handle is 'nw'|'ne'|'sw'|'se' for a corner, 'body' for inside, or null.
+function hitTest(canvas, fx, fy) {
+    const hx = HANDLE_PX / canvas.width;   // handle radius in fraction units
+    const hy = HANDLE_PX / canvas.height;
+    // Iterate top-most (last drawn) first so overlapping zones pick the visible one.
+    for (let i = dropZones.zones.length - 1; i >= 0; i--) {
+        const z = dropZones.zones[i];
+        const corners = { nw: [z.left, z.top], ne: [z.right, z.top],
+                          sw: [z.left, z.bottom], se: [z.right, z.bottom] };
+        for (const [h, [cx, cy]] of Object.entries(corners)) {
+            if (Math.abs(fx - cx) <= hx && Math.abs(fy - cy) <= hy) return { index: i, handle: h };
+        }
+        if (fx >= z.left && fx <= z.right && fy >= z.top && fy <= z.bottom) return { index: i, handle: 'body' };
+    }
+    return null;
+}
+
+function cursorFor(handle) {
+    return handle === 'nw' || handle === 'se' ? 'nwse-resize'
+         : handle === 'ne' || handle === 'sw' ? 'nesw-resize'
+         : handle === 'body' ? 'move' : 'crosshair';
+}
+
+function normalizeZone(z) {
+    const [left, right] = [z.left, z.right].sort((a, b) => a - b);
+    const [top, bottom] = [z.top, z.bottom].sort((a, b) => a - b);
+    return { left, top, right, bottom };
+}
+
+function onDzDown(canvas, evt) {
+    if (!editMode) return;
+    const { fx, fy } = canvasFrac(canvas, evt);
+    const hit = hitTest(canvas, fx, fy);
+    if (hit) {
+        drag = { type: hit.handle === 'body' ? 'move' : 'resize', index: hit.index,
+                 handle: hit.handle, startX: fx, startY: fy,
+                 orig: { ...dropZones.zones[hit.index] } };
+    } else {
+        // Start a brand-new zone; grows as the pointer drags.
+        dropZones.zones.push({ left: fx, top: fy, right: fx, bottom: fy });
+        drag = { type: 'create', index: dropZones.zones.length - 1,
+                 handle: 'se', startX: fx, startY: fy };
+    }
+    evt.preventDefault();
+}
+
+function onDzMove(canvas, evt) {
+    if (!editMode) return;
+    const { fx, fy } = canvasFrac(canvas, evt);
+    if (!drag) {                       // just hovering → cursor feedback
+        const hit = hitTest(canvas, fx, fy);
+        canvas.style.cursor = cursorFor(hit ? hit.handle : null);
+        return;
+    }
+    const z = dropZones.zones[drag.index];
+    if (drag.type === 'move') {
+        const dx = fx - drag.startX, dy = fy - drag.startY;
+        const w = drag.orig.right - drag.orig.left, h = drag.orig.bottom - drag.orig.top;
+        let left = Math.max(0, Math.min(1 - w, drag.orig.left + dx));
+        let top  = Math.max(0, Math.min(1 - h, drag.orig.top  + dy));
+        z.left = left; z.top = top; z.right = left + w; z.bottom = top + h;
+    } else {   // resize or create: move the dragged corner
+        if (drag.handle.includes('w')) z.left  = fx; else z.right  = fx;
+        if (drag.handle.includes('n')) z.top   = fy; else z.bottom = fy;
+    }
+    dzDirty = true;
+    updateDzButtons();
+}
+
+function onDzUp() {
+    if (!drag) return;
+    // Commit: normalize orientation and drop zero-area rectangles (stray clicks).
+    const z = normalizeZone(dropZones.zones[drag.index]);
+    if (z.right - z.left < 0.01 || z.bottom - z.top < 0.01) {
+        dropZones.zones.splice(drag.index, 1);
+    } else {
+        dropZones.zones[drag.index] = z;
+    }
+    drag = null;
+    updateDzButtons();
+}
+
+function onDzDblClick(canvas, evt) {
+    if (!editMode) return;
+    const { fx, fy } = canvasFrac(canvas, evt);
+    const hit = hitTest(canvas, fx, fy);
+    if (hit) {
+        dropZones.zones.splice(hit.index, 1);
+        dzDirty = true;
+        updateDzButtons();
+        evt.preventDefault();
+    }
+}
+
+function updateDzButtons() {
+    const save  = document.getElementById('dropzone-save-btn');
+    const clear = document.getElementById('dropzone-clear-btn');
+    const hint  = document.getElementById('dropzone-hint');
+    if (save)  { save.style.display  = editMode ? '' : 'none';
+                 save.textContent = dzDirty ? '💾 Save zones *' : '💾 Save zones'; }
+    if (clear) clear.style.display = editMode ? '' : 'none';
+    if (hint)  hint.style.display  = editMode ? '' : 'none';
+}
+
+function wireDropZoneEditor(canvas) {
+    const editToggle    = document.getElementById('dropzone-edit-toggle');
+    const enabledToggle = document.getElementById('dropzone-enabled-toggle');
+    const clearBtn      = document.getElementById('dropzone-clear-btn');
+    const saveBtn       = document.getElementById('dropzone-save-btn');
+    if (!editToggle) return;
+
+    editToggle.addEventListener('change', () => {
+        editMode = editToggle.checked;
+        canvas.style.cursor = editMode ? 'crosshair' : 'default';
+        updateDzButtons();
+    });
+    if (enabledToggle) {
+        enabledToggle.checked = dropZones.enabled !== false;
+        enabledToggle.addEventListener('change', () => {
+            dropZones.enabled = enabledToggle.checked;
+            dzDirty = true;
+            updateDzButtons();
+        });
+    }
+    clearBtn.addEventListener('click', () => {
+        dropZones.zones = [];
+        dzDirty = true;
+        updateDzButtons();
+    });
+    saveBtn.addEventListener('click', async () => {
+        try {
+            dropZones.zones = dropZones.zones.map(normalizeZone);
+            dropZones = await saveDropZones(dropZones);
+            dzDirty = false;
+            updateDzButtons();
+            setStatus('Drop zones saved.', true);
+        } catch (e) {
+            setStatus(`Could not save drop zones: ${e.message}`, false);
+        }
+    });
+
+    canvas.addEventListener('mousedown', e => onDzDown(canvas, e));
+    canvas.addEventListener('mousemove', e => onDzMove(canvas, e));
+    window.addEventListener('mouseup', onDzUp);
+    canvas.addEventListener('dblclick', e => onDzDblClick(canvas, e));
+}
+
 // ── init ──────────────────────────────────────────────────────────────────────
 export async function initVisionPanel() {
     const startBtn = document.getElementById('vision-start-btn');
@@ -274,6 +472,13 @@ export async function initVisionPanel() {
 
     startBtn.addEventListener('click', startCamera);
     document.getElementById('vision-stop-btn').addEventListener('click', stopCamera);
+
+    // Drop-zone editor: load the saved masks, then wire the canvas interactions.
+    try {
+        dropZones = await fetchDropZones();
+    } catch { /* keep default empty zones if load fails */ }
+    wireDropZoneEditor(document.getElementById('vision-canvas'));
+    updateDzButtons();
 
     // Check model availability
     const available = await fetchDetectStatus();
