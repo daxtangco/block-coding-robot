@@ -155,6 +155,12 @@ class LEGOSorter:
         stats = {bin_name: 0 for bin_name in self.bin_positions.keys()}
 
         for detection in detections:
+            # A detected class with no sorting rule (e.g. the live model emits a
+            # class the current SORTING_RULES doesn't cover) must not crash the
+            # whole detection request — skip it rather than raising, so the Vision
+            # feed keeps rendering. get_target_bin() still validates elsewhere.
+            if detection.class_name not in self.sorting_rules:
+                continue
             bin_name, _ = self.get_target_bin(detection.class_name)
             stats[bin_name] += 1
 
