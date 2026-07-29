@@ -151,6 +151,29 @@ export async function detectImage(blob, conf = 0.5) {
     return await response.json();
 }
 
+// ── Drop-zone masks (Vision tab exclusion ROI) ──────────────────────────────
+
+export async function fetchDropZones(projectName = 'default') {
+    const response = await fetch(`${API_BASE}/detect/drop-zones?project_name=${projectName}`);
+    if (!response.ok) throw new Error('Failed to load drop zones');
+    const data = await response.json();
+    return data.drop_zones;   // { enabled, zones: [{left,top,right,bottom}, ...] }
+}
+
+export async function saveDropZones(dropZones, projectName = 'default') {
+    const response = await fetch(`${API_BASE}/detect/drop-zones?project_name=${projectName}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dropZones)
+    });
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.detail || 'Failed to save drop zones');
+    }
+    const data = await response.json();
+    return data.drop_zones;
+}
+
 // ── Custom-dataset training (Train Model tab) ───────────────────────────────
 
 export async function uploadDataset(file, projectName = 'default') {

@@ -18,25 +18,29 @@ _model = None          # cached YOLO instance
 _model_path = None     # path the cache was built from
 _sorter = LEGOSorter()
 
-# ── Pickup-zone / region of interest (ROI) ───────────────────────────────────
-# Only pieces whose bounding-box CENTER falls inside this rectangle are reported.
-# Everything outside — e.g. bricks already dropped into their bins — is ignored,
-# so the program never re-sorts a piece it already placed.
+# ── Drop-zone masks (exclusion ROI) ──────────────────────────────────────────
+# Inverse of a single pickup rectangle: instead of only looking INSIDE one area,
+# we treat the WHOLE frame as valid pickup space and MASK OUT the drop zones —
+# the spots where the bins sit. A detection is ignored only if its bounding-box
+# CENTER falls inside one of these masks, so bricks already dropped into their
+# bins are never re-sorted, while a piece anywhere else is still picked.
 #
-# Coordinates are FRACTIONS of the frame (0..1) so they're resolution-independent:
-# (left, top, right, bottom). Default = the centre 60% of the frame. Tune these
-# by watching the drawn zone in the Vision tab until it hugs your pickup area.
-# Set ENABLED = False to disable filtering (report every detection).
-PICKUP_ZONE = {"enabled": True, "left": 0.20, "top": 0.20, "right": 0.80, "bottom": 0.80}
+# The zones are USER-SPECIFIC (every bin layout differs), so they're drawn and
+# dragged live in the Vision tab and persisted per-project (drop_zones.json).
+# Each zone is FRACTIONS of the frame (0..1): {left, top, right, bottom}.
+# Shape: {"enabled": bool, "zones": [ {...}, ... ]}.
 
 
-def _in_pickup_zone(center, frame_w, frame_h) -> bool:
-    """True if a detection center (cx, cy in pixels) is inside the pickup zone."""
-    if not PICKUP_ZONE["enabled"]:
-        return True
+def _in_drop_zone(center, frame_w, frame_h, drop_zones) -> bool:
+    """True if a detection center (cx, cy in pixels) is inside ANY drop zone."""
+    if not drop_zones or not drop_zones.get("enabled"):
+        return False
     cx, cy = center
-    return (PICKUP_ZONE["left"]  * frame_w <= cx <= PICKUP_ZONE["right"]  * frame_w
-            and PICKUP_ZONE["top"] * frame_h <= cy <= PICKUP_ZONE["bottom"] * frame_h)
+    for z in drop_zones.get("zones", []):
+        if (z["left"] * frame_w <= cx <= z["right"] * frame_w
+                and z["top"] * frame_h <= cy <= z["bottom"] * frame_h):
+            return True
+    return False
 
 
 def model_available() -> bool:
@@ -121,6 +125,10 @@ def detect(image_bytes: bytes, conf: float = 0.5) -> dict:
 
     frame_h, frame_w = frame.shape[:2]
 
+    # Load the user's drop-zone masks (drawn in the Vision tab, per-project).
+    from backend.services import storage
+    drop_zones = storage.load_drop_zones()
+
     model = _load_model()
     results = model(frame, conf=conf, verbose=False)
 
@@ -136,8 +144,9 @@ def detect(image_bytes: bytes, conf: float = 0.5) -> dict:
             det = Detection(class_name=class_name, confidence=confidence,
                             bbox=(x1, y1, x2, y2))
 
-            # Skip anything outside the pickup zone (e.g. already-sorted bricks).
-            if not _in_pickup_zone(det.center, frame_w, frame_h):
+            # Skip anything inside a drop zone (e.g. bricks already dropped into
+            # their bins). The rest of the frame is valid pickup space.
+            if _in_drop_zone(det.center, frame_w, frame_h, drop_zones):
                 continue
 
             detection_objs.append(det)
@@ -163,6 +172,6 @@ def detect(image_bytes: bytes, conf: float = 0.5) -> dict:
         "detections": detections,
         "bin_statistics": bin_stats,
         "model_path": _model_path,
-        # Echo the zone (as fractions) so the Vision tab can draw it for calibration.
-        "pickup_zone": PICKUP_ZONE,
+        # Echo the masks (as fractions) so the Vision tab can draw them for calibration.
+        "drop_zones": drop_zones,
     }

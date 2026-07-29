@@ -48,6 +48,23 @@ def save_poses(poses: Dict[str, list], project_name: str = "default"):
     poses_path = get_project_dir(project_name) / "poses.json"
     poses_path.write_text(json.dumps(poses, indent=2))
 
+def load_drop_zones(project_name: str = "default") -> Dict[str, Any]:
+    """Load the drop-zone masks (exclusion ROI) for the Vision tab.
+
+    Shape: {"enabled": bool, "zones": [{"left","top","right","bottom"}, ...]}
+    where each value is a fraction (0..1) of the frame. Default = enabled with no
+    zones, i.e. the whole frame is valid pickup space until the user draws bins.
+    """
+    path = get_project_dir(project_name) / "drop_zones.json"
+    if path.exists():
+        return json.loads(path.read_text())
+    return {"enabled": True, "zones": []}
+
+def save_drop_zones(drop_zones: Dict[str, Any], project_name: str = "default"):
+    """Save the drop-zone masks to JSON file."""
+    path = get_project_dir(project_name) / "drop_zones.json"
+    path.write_text(json.dumps(drop_zones, indent=2))
+
 def load_programs(project_name: str = "default") -> Dict[str, Any]:
     """Load saved block programs. Each value is a Blockly workspace
     serialization (the blocks themselves, not the generated C++)."""
