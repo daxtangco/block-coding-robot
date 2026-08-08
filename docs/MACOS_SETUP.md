@@ -1,6 +1,6 @@
-# macOS Setup — Handoff for the Mac's Claude Code session
+# macOS Setup — Handoff for the Mac development session
 
-> **Read this first.** This file is written for a Claude Code session running on
+> **Read this first.** This file is written for a development session running on
 > a **macOS** machine, picking up a project that was developed on Windows. Its
 > job: get the Block Robot IDE + launcher running on this Mac. The code is
 > already cross-platform — there are **no source changes to make**. This is a

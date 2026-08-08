@@ -64,10 +64,12 @@ models/best.pt
 .DS_Store
 Thumbs.db
 
-# Agent / tooling state (oh-my-claudecode scratch data)
+# Local editor/tooling state (not part of the project)
 .omc/
 **/.omc/
 .superpowers/
+.claude/
+docs/superpowers/
 
 # Training / inference outputs
 runs/

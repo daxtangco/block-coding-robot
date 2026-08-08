@@ -17,7 +17,7 @@ Notes:
 - Keep a note of each photo's source URL for the caption / your defense Q&A.
 - **These three comparison photos are already embedded inside `defense_deck.html`** (as base64),
   so the deck is self-contained. Replacing a file here does NOT update the deck until it's
-  re-embedded — tell Claude to re-embed if you swap one.
+  re-embedded — the deck must be re-embedded if you swap one.
 
 ## Live-demo screenshot slots (optional)
 
@@ -34,4 +34,4 @@ visual fallback in case the live demo fails on the day:
 - If a slot is empty, the slide shows a dashed `[ switch to the live IDE · or add img/... ]` box —
   it never breaks, so you can present live without them.
 - ⚠️ **Portability:** these demo slots load from this folder, so if you add screenshots and want the
-  deck to stay a single sendable file, ask Claude to embed them (base64) like the comparison photos.
+  deck to stay a single sendable file, embed them (base64) like the comparison photos.

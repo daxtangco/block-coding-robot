@@ -1,6 +1,6 @@
 # Session handoff — launcher hardening & multi-OS release (2026-07-17)
 
-For the Mac Claude Code session. Summary of what changed, why, current state,
+For the Mac development session. Summary of what changed, why, current state,
 and what's left. Everything below is already merged to `main` and released.
 
 ## TL;DR

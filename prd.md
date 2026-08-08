@@ -375,7 +375,7 @@ Purpose:
 
 # Dataset Preparation Requirements
 
-Claude Code must automatically:
+The training pipeline must automatically:
 
 1. Scan all dataset folders
 2. Detect annotation formats
@@ -457,7 +457,7 @@ Otherwise:
 
 # Evaluation Metrics
 
-Claude Code must report:
+The training pipeline must report:
 
 ```text
 mAP@0.5
@@ -488,7 +488,7 @@ The final trained model must:
 
 # Expected Outputs
 
-Claude Code must generate:
+The training pipeline must generate:
 
 ## Training Files
 
