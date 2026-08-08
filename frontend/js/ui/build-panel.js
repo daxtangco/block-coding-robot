@@ -215,7 +215,6 @@ function attachFlashHandlers(firmwareUrl) {
                 await uploadFirmware({
                     port,
                     generatedCode: lastBuild.generatedCode,
-                    useApMode: true,
                 });
                 setUploadLog(`Flashed to ${port}. The board is rebooting — reconnect your phone to RobotArm-XXXX.`, false);
             } catch (e) {

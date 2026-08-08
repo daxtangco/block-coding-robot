@@ -30,19 +30,9 @@ def _arduino_cli() -> str:
         return str(local)
     return "arduino-cli"
 
-def get_template_path(use_pca9685: bool = True, use_ap_mode: bool = False) -> Path:
-    """Get the appropriate firmware template path."""
-    templates_dir = Path("backend/templates")
-
-    if use_ap_mode:
-        # AP mode template (always uses PCA9685)
-        return templates_dir / "arm_controller_ap_mode.ino"
-    elif use_pca9685:
-        # PCA9685 template with Blynk (legacy)
-        return templates_dir / "arm_controller_pca9685.ino"
-    else:
-        # Direct GPIO control (legacy)
-        return templates_dir / "arm_controller.ino"
+def get_template_path() -> Path:
+    """Path to the arm firmware template (AP mode + PCA9685)."""
+    return Path("backend/templates") / "arm_controller_ap_mode.ino"
 
 # Thread pool for running subprocess on Windows
 _executor = ThreadPoolExecutor(max_workers=4)

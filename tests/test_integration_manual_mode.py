@@ -32,50 +32,23 @@ def test_settings_save_and_load(test_settings, tmp_path):
     # API returns nested structure: {"status": "success", "settings": {...}}
     settings = data.get("settings", data)
     assert settings["wifi_ssid"] == test_settings["wifi_ssid"]
-    assert settings["blynk_auth_token"] == test_settings["blynk_auth_token"]
 
-def test_template_gpio_pins_updated():
-    """Test template has correct GPIO pins."""
-    template_path = Path("backend/templates/arm_controller.ino")
-    content = template_path.read_text(encoding='utf-8')
+def test_template_has_servo_channels():
+    """The AP-mode template maps the five joints to PCA9685 channels."""
+    content = Path("backend/templates/arm_controller_ap_mode.ino").read_text(encoding='utf-8')
 
-    assert "const int PIN_BASE = 25" in content
-    assert "const int PIN_SHOULDER = 26" in content
-    assert "const int PIN_ELBOW = 27" in content
-    assert "const int PIN_WRIST = 32" in content
-    assert "const int PIN_GRIPPER = 33" in content
+    for name in ("SERVO_BASE", "SERVO_SHOULDER", "SERVO_ELBOW", "SERVO_WRIST", "SERVO_GRIPPER"):
+        assert name in content
 
 def test_template_fills_correctly(test_settings):
-    """Test template engine fills placeholders."""
-    template_path = Path("backend/templates/arm_controller.ino")
-    template = template_path.read_text(encoding='utf-8')
+    """Test template engine fills placeholders and leaves none behind."""
+    template = Path("backend/templates/arm_controller_ap_mode.ino").read_text(encoding='utf-8')
 
-    result = fill_template(template, test_settings, {}, "// test code")
+    result = fill_template(template, test_settings, {"HOME": [90, 120, 120, 75, 5]}, "// test code")
 
-    assert test_settings["wifi_ssid"] in result
-    assert test_settings["wifi_password"] in result
-    assert test_settings["blynk_template_id"] in result
-    assert test_settings["blynk_auth_token"] in result
     assert "// test code" in result
-
-def test_frontend_has_four_tabs():
-    """Test frontend HTML has all 4 tabs."""
-    html_path = Path("frontend/index.html")
-    content = html_path.read_text(encoding='utf-8')
-
-    assert 'data-workspace="setup"' in content
-    assert 'data-workspace="blynk-setup"' in content
-    assert 'data-workspace="poses"' in content
-    assert 'data-workspace="program"' in content
-
-def test_blynk_setup_workspace_exists():
-    """Test Blynk Setup workspace div exists."""
-    html_path = Path("frontend/index.html")
-    content = html_path.read_text(encoding='utf-8')
-
-    assert 'id="blynk-setup-workspace"' in content
-    assert 'id="standard-setup-btn"' in content
-    assert 'id="custom-setup-btn"' in content
+    assert "const int POSE_HOME[5] = {90, 120, 120, 75, 5};" in result
+    assert "{{" not in result
 
 def test_flash_options_in_build_modal():
     """Test build modal has flash options."""
@@ -92,32 +65,3 @@ def test_documentation_exists():
     assert Path("docs/HARDWARE_PINOUT.md").exists()
     assert Path("QUICKSTART.md").exists()  # QUICKSTART is in root directory
 
-def test_blynk_setup_js_exists():
-    """Test Blynk Setup JavaScript exists."""
-    js_path = Path("frontend/js/blynk_setup.js")
-    assert js_path.exists()
-
-    content = js_path.read_text(encoding='utf-8')
-    assert "BlynkSetupGuide" in content
-    assert "showStandardSetup" in content
-    assert "generateWidgetSteps" in content
-
-def test_web_serial_js_exists():
-    """Test Web Serial JavaScript exists."""
-    js_path = Path("frontend/js/web_serial.js")
-    assert js_path.exists()
-
-    content = js_path.read_text(encoding='utf-8')
-    assert "ESP32Flasher" in content
-    assert "requestPort" in content
-    assert "connect" in content
-
-def test_flash_ui_js_exists():
-    """Test Flash UI JavaScript exists."""
-    js_path = Path("frontend/js/flash_ui.js")
-    assert js_path.exists()
-
-    content = js_path.read_text(encoding='utf-8')
-    assert "FlashUI" in content
-    assert "startFlash" in content
-    assert "addValidationChecklist" in content

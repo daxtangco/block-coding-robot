@@ -97,9 +97,7 @@ export async function buildFirmware(generatedCode, targetBoard = 'arm', projectN
         body: JSON.stringify({
             generated_code: generatedCode,
             target_board: targetBoard,
-            project_name: projectName,
-            use_pca9685: true,
-            use_ap_mode: true
+            project_name: projectName
         })
     });
 
@@ -221,7 +219,7 @@ export async function fetchSerialPorts() {
     return data.ports;
 }
 
-export async function uploadFirmware({ port, generatedCode = '', useApMode = true, projectName = 'default' }) {
+export async function uploadFirmware({ port, generatedCode = '', projectName = 'default' }) {
     const response = await fetch(`${API_BASE}/upload`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -230,8 +228,6 @@ export async function uploadFirmware({ port, generatedCode = '', useApMode = tru
             generated_code: generatedCode,
             target_board: 'arm',
             project_name: projectName,
-            use_pca9685: true,
-            use_ap_mode: useApMode,
         }),
     });
     const data = await response.json();

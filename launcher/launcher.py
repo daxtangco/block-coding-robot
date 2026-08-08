@@ -246,7 +246,7 @@ class LauncherApp:
                                doctor.USB_DRIVER_URL)
                 return
             port = ports[0]["port"]
-            sketch = (self.proj / get_template_path(use_ap_mode=True)).resolve()
+            sketch = (self.proj / get_template_path()).resolve()
             self._log(f"Flashing {sketch.name} to {port} …")
             actions.flash_firmware(self.proj, port, sketch, self._log)
         self._run_bg(work)

@@ -13,18 +13,14 @@ router = APIRouter()
 
 class BuildRequest(BaseModel):
     generated_code: str = ""  # Optional - empty for manual mode
-    target_board: str = "arm"  # "arm" or "vision"
+    target_board: str = "arm"
     project_name: str = "default"
-    use_pca9685: bool = True  # Use PCA9685 servo driver by default
-    use_ap_mode: bool = False  # Use AP mode (WiFi access point) instead of Blynk
 
 class UploadRequest(BaseModel):
     port: str
     generated_code: str = ""
     target_board: str = "arm"
     project_name: str = "default"
-    use_pca9685: bool = True
-    use_ap_mode: bool = True
 
 
 def _build_sketch(request: BuildRequest) -> str:
@@ -32,14 +28,9 @@ def _build_sketch(request: BuildRequest) -> str:
     settings = load_settings(request.project_name)
     poses = load_poses(request.project_name)
 
-    if request.target_board == "arm":
-        template_file = get_template_path(
-            use_pca9685=request.use_pca9685, use_ap_mode=request.use_ap_mode
-        )
-    elif request.target_board == "vision":
-        template_file = Path("backend/templates") / "vision_board.ino"
-    else:
-        raise HTTPException(400, "Invalid target_board. Must be 'arm' or 'vision'")
+    if request.target_board != "arm":
+        raise HTTPException(400, "Invalid target_board. Must be 'arm'")
+    template_file = get_template_path()
 
     if not template_file.exists():
         raise HTTPException(500, f"Template not found: {template_file}")
@@ -89,8 +80,6 @@ async def upload_firmware(request: UploadRequest):
         generated_code=request.generated_code,
         target_board=request.target_board,
         project_name=request.project_name,
-        use_pca9685=request.use_pca9685,
-        use_ap_mode=request.use_ap_mode,
     ))
 
     success, output = await compile_and_upload(filled_sketch, request.port)
@@ -108,8 +97,6 @@ async def build_manual_mode(project_name: str = "default"):
         generated_code="",
         target_board="arm",
         project_name=project_name,
-        use_pca9685=True,
-        use_ap_mode=True
     ))
 
 @router.get("/download/{build_id}")

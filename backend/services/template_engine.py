@@ -24,9 +24,6 @@ def normalize_pose_refs(code: str) -> str:
 def fill_template(template: str, settings: Dict[str, Any], poses: Dict[str, list], generated_code: str) -> str:
     """Replace {{placeholders}} in template with actual values."""
     replacements = {
-        "{{BLYNK_TEMPLATE_ID}}": settings.get("blynk_template_id", ""),
-        "{{BLYNK_TEMPLATE_NAME}}": settings.get("blynk_template_name", ""),
-        "{{BLYNK_AUTH_TOKEN}}": settings.get("blynk_auth_token", ""),
         "{{WIFI_SSID}}": settings.get("wifi_ssid", ""),
         "{{WIFI_PASSWORD}}": settings.get("wifi_password", ""),
         "{{POSE_DEFINITIONS}}": generate_pose_definitions(poses),
